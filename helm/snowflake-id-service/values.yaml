@@ -2,7 +2,7 @@
 replicaCount: 1
 
 image:
-  repository: snowflake-id-service
+  repository: "ymoroz/snowflake-id-service"
   pullPolicy: IfNotPresent
   tag: "latest"
   size: 2GB
