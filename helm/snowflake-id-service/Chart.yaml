@@ -1,0 +1,14 @@
+apiVersion: v2
+name: snowflake-id-service
+description: A Helm chart for Snowflake ID Service - generates unique distributed IDs
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - snowflake
+  - id-generator
+  - microservice
+maintainers:
+  - name: Yurii Moroz
+sources:
+  - https://github.com/ymoroz/snowflake-id-service
