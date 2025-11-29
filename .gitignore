@@ -1,3 +1,5 @@
 /build/
 /.gradle/
 /.idea/
+/snowflake-proto/build/
+/snowflake-server/build/

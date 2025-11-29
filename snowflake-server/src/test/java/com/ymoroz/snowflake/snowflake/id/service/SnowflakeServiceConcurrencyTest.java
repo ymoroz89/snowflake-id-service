@@ -1,8 +1,6 @@
 package com.ymoroz.snowflake.snowflake.id.service;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.Collections;
 import java.util.concurrent.*;
@@ -10,11 +8,9 @@ import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest
 class SnowflakeServiceConcurrencyTest {
 
-    @Autowired
-    SnowflakeService service;
+    SnowflakeService service = new SnowflakeService();
 
     @Test
     void nextId_isThreadSafe_unique() throws Exception {

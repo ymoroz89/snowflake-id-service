@@ -1,12 +1,9 @@
 package com.ymoroz.snowflake.snowflake.id.service;
 
 import lombok.ToString;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 
-@Service
 @ToString
 public class SnowflakeService {
     private static final int NODE_ID_BITS = 10;
@@ -20,7 +17,11 @@ public class SnowflakeService {
     private volatile long lastTimestamp = -1L;
     private volatile long sequence = 0L;
 
-    public SnowflakeService(@Value("${HOSTNAME:snowflake-1}") String hostname) {
+    public SnowflakeService() {
+        this(System.getenv("HOSTNAME") != null ? System.getenv("HOSTNAME") : "snowflake-1");
+    }
+
+    public SnowflakeService(String hostname) {
         this.nodeId = extractOrdinal(hostname);
     }
 

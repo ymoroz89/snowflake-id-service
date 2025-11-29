@@ -34,13 +34,13 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
-            - name: http
+            - name: grpc
               containerPort: {{ .Values.app.port }}
               protocol: TCP
           env:
             - name: SPRING_APPLICATION_NAME
               value: {{ .Values.app.name }}
-            - name: SERVER_PORT
+            - name: GRPC_SERVER_PORT
               value: "{{ .Values.app.port }}"
           {{- if .Values.livenessProbe }}
           livenessProbe:
