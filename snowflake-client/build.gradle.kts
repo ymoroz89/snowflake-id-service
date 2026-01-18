@@ -1,5 +1,6 @@
 plugins {
     java
+    jacoco
 }
 
 group = "com.ymoroz.snowflake"
@@ -37,4 +38,9 @@ tasks.test {
         showStandardStreams = true
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
     }
+    finalizedBy("jacocoTestReport")
+}
+
+tasks.named<JacocoReport>("jacocoTestReport") {
+    dependsOn(tasks.test)
 }

@@ -1,5 +1,6 @@
 plugins {
     java
+    jacoco
     id("com.google.protobuf") version "0.9.4"
     `maven-publish`
 }
@@ -40,6 +41,15 @@ protobuf {
             }
         }
     }
+}
+
+tasks.test {
+    useJUnitPlatform()
+    finalizedBy("jacocoTestReport")
+}
+
+tasks.named<JacocoReport>("jacocoTestReport") {
+    dependsOn(tasks.test)
 }
 
 publishing {

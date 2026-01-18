@@ -63,10 +63,11 @@ public class SnowflakeService {
     }
 
     private long waitNextMillis(long currentTimestamp) {
-        while (currentTimestamp == lastTimestamp) {
-            currentTimestamp = timestamp();
+        long timestamp = currentTimestamp;
+        while (timestamp == lastTimestamp) {
+            timestamp = timestamp();
         }
-        return currentTimestamp;
+        return timestamp;
     }
 
     private static long extractOrdinal(String hostname) {
