@@ -3,6 +3,8 @@ package com.ymoroz.snowflake.snowflake.id.service;
 import lombok.ToString;
 
 import java.time.Instant;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 @ToString
 public class SnowflakeService {
@@ -14,8 +16,9 @@ public class SnowflakeService {
     private final long nodeId;
     private final long customEpoch = DEFAULT_CUSTOM_EPOCH;
 
-    private volatile long lastTimestamp = -1L;
-    private volatile long sequence = 0L;
+    private final Lock lock = new ReentrantLock();
+    private long lastTimestamp = -1L;
+    private long sequence = 0L;
 
     public SnowflakeService() {
         this(System.getenv("HOSTNAME") != null ? System.getenv("HOSTNAME") : "snowflake-1");
@@ -25,27 +28,32 @@ public class SnowflakeService {
         this.nodeId = extractOrdinal(hostname);
     }
 
-    public synchronized long nextId() {
-        long currentTimestamp = timestamp();
+    public long nextId() {
+        lock.lock();
+        try {
+            long currentTimestamp = timestamp();
 
-        if(currentTimestamp < lastTimestamp) {
-            throw new IllegalStateException("Invalid System Clock!");
-        }
-
-        if (currentTimestamp == lastTimestamp) {
-            sequence = (sequence + 1) & maxSequence;
-            if(sequence == 0) {
-                currentTimestamp = waitNextMillis(currentTimestamp);
+            if (currentTimestamp < lastTimestamp) {
+                throw new IllegalStateException("Invalid System Clock!");
             }
-        } else {
-            sequence = 0;
+
+            if (currentTimestamp == lastTimestamp) {
+                sequence = (sequence + 1) & maxSequence;
+                if (sequence == 0) {
+                    currentTimestamp = waitNextMillis(currentTimestamp);
+                }
+            } else {
+                sequence = 0;
+            }
+
+            lastTimestamp = currentTimestamp;
+
+            return currentTimestamp << (NODE_ID_BITS + SEQUENCE_BITS)
+                    | (nodeId << SEQUENCE_BITS)
+                    | sequence;
+        } finally {
+            lock.unlock();
         }
-
-        lastTimestamp = currentTimestamp;
-
-        return currentTimestamp << (NODE_ID_BITS + SEQUENCE_BITS)
-                | (nodeId << SEQUENCE_BITS)
-                | sequence;
     }
 
     private long timestamp() {

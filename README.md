@@ -8,6 +8,7 @@ The project is structured as a multi-module Gradle build:
 
 - `snowflake-proto`: Protocol buffer definitions and generated gRPC client/server stubs
 - `snowflake-server`: gRPC server implementation using Spring Boot
+- `snowflake-client`: Java gRPC client library for easy integration
 
 ## Building
 
@@ -27,6 +28,27 @@ The server will start on port 9090.
 
 ## Using the Client
 
+### Option 1: Using SnowflakeClient (Recommended)
+
+Add the `snowflake-client` dependency:
+
+```gradle
+dependencies {
+    implementation("com.ymoroz.snowflake:snowflake-client:0.0.1-SNAPSHOT")
+}
+```
+
+Example usage:
+
+```java
+try (SnowflakeClient client = new SnowflakeClient("localhost", 9090)) {
+    long id = client.generateId();
+    System.out.println("Generated ID: " + id);
+}
+```
+
+### Option 2: Using snowflake-proto directly
+
 The `snowflake-proto` module can be used as a Gradle dependency in other projects:
 
 ```gradle
@@ -36,6 +58,7 @@ dependencies {
 ```
 
 Example client usage:
+
 ```java
 ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost", 9090)
     .usePlaintext()

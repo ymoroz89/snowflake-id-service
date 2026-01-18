@@ -15,15 +15,14 @@ class SnowflakeServiceConcurrencyTest {
     @Test
     void nextId_isThreadSafe_unique() throws Exception {
         int calls = 100_000;
-        int threads = 64;
 
-        ExecutorService pool = Executors.newFixedThreadPool(threads);
+        ExecutorService pool = Executors.newVirtualThreadPerTaskExecutor();
         CountDownLatch start = new CountDownLatch(1);
 
         var ids = Collections.newSetFromMap(new ConcurrentHashMap<Long, Boolean>());
         ConcurrentLinkedQueue<Throwable> failures = new ConcurrentLinkedQueue<>();
 
-        IntStream.range(0, calls).forEach(i -> pool.submit(() -> {
+        IntStream.range(0, calls).parallel().forEach(i -> pool.submit(() -> {
             try {
                 start.await();
                 long id = service.nextId();
