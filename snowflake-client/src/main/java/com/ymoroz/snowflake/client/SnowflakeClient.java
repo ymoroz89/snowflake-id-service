@@ -19,6 +19,10 @@ public class SnowflakeClient implements AutoCloseable {
                 .build());
     }
 
+    public SnowflakeClient(SnowflakeClientProperties properties) {
+        this(properties.getHost(), properties.getPort());
+    }
+
     public SnowflakeClient(ManagedChannel channel) {
         this.channel = channel;
         this.blockingStub = SnowflakeServiceGrpc.newBlockingStub(channel);

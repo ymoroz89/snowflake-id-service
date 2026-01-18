@@ -3,3 +3,4 @@
 /.idea/
 /snowflake-proto/build/
 /snowflake-server/build/
+/snowflake-client/build/

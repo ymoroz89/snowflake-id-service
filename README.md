@@ -38,7 +38,29 @@ dependencies {
 }
 ```
 
-Example usage:
+#### Spring Boot Integration
+
+If you are using Spring Boot, `SnowflakeClient` is automatically configured. You can customize the connection in your `application.yaml`:
+
+```yaml
+snowflake:
+  client:
+    host: localhost
+    port: 9090
+```
+
+Then simply inject it:
+
+```java
+@Autowired
+private SnowflakeClient snowflakeClient;
+
+public void someMethod() {
+    long id = snowflakeClient.generateId();
+}
+```
+
+#### Manual Usage
 
 ```java
 try (SnowflakeClient client = new SnowflakeClient("localhost", 9090)) {
