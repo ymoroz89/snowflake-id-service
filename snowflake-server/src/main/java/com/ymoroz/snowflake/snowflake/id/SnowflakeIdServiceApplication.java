@@ -1,7 +1,9 @@
 package com.ymoroz.snowflake.snowflake.id;
 
-import com.ymoroz.snowflake.snowflake.id.service.SnowflakeService;
-import net.devh.boot.grpc.server.serverfactory.GrpcServerConfigurer;
+import com.ymoroz.snowflake.snowflake.id.grpc.SnowflakeGrpcService;
+import io.grpc.Server;
+import io.grpc.ServerBuilder;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -15,13 +17,12 @@ public class SnowflakeIdServiceApplication {
 		SpringApplication.run(SnowflakeIdServiceApplication.class, args);
 	}
 
-	@Bean
-	public SnowflakeService snowflakeService() {
-		return new SnowflakeService();
-	}
-
-	@Bean
-	public GrpcServerConfigurer virtualThreadConfigurer() {
-		return builder -> builder.executor(Executors.newVirtualThreadPerTaskExecutor());
+	@Bean(initMethod = "start", destroyMethod = "shutdown")
+	public Server grpcServer(SnowflakeGrpcService snowflakeGrpcService,
+							 @Value("${grpc.server.port:9090}") int port) {
+		return ServerBuilder.forPort(port)
+				.addService(snowflakeGrpcService)
+				.executor(Executors.newVirtualThreadPerTaskExecutor())
+				.build();
 	}
 }

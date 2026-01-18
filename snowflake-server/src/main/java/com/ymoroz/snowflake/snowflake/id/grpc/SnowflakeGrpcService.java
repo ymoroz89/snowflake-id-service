@@ -5,10 +5,10 @@ import com.ymoroz.snowflake.proto.GenerateIdResponse;
 import com.ymoroz.snowflake.proto.SnowflakeServiceGrpc;
 import com.ymoroz.snowflake.snowflake.id.service.SnowflakeService;
 import io.grpc.stub.StreamObserver;
-import net.devh.boot.grpc.server.service.GrpcService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
-@GrpcService
+@Service
 @RequiredArgsConstructor
 public class SnowflakeGrpcService extends SnowflakeServiceGrpc.SnowflakeServiceImplBase {
 

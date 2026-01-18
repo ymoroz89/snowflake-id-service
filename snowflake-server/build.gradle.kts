@@ -1,6 +1,6 @@
 plugins {
     java
-    id("org.springframework.boot") version "3.4.1"
+    id("org.springframework.boot") version "4.0.1"
     id("io.spring.dependency-management") version "1.1.7"
 }
 
@@ -20,7 +20,10 @@ repositories {
 
 dependencies {
     implementation(project(":snowflake-proto"))
-    implementation("net.devh:grpc-server-spring-boot-starter:3.1.0.RELEASE")
+    implementation("io.grpc:grpc-netty-shaded:1.78.0")
+    implementation("io.grpc:grpc-protobuf:1.78.0")
+    implementation("io.grpc:grpc-stub:1.78.0")
+    implementation("org.springframework.boot:spring-boot-starter")
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")
     testImplementation(project(":snowflake-client"))
@@ -28,4 +31,11 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
-tasks.test { useJUnitPlatform() }
+tasks.test {
+    useJUnitPlatform()
+    testLogging {
+        events("passed", "skipped", "failed", "standardOut", "standardError")
+        showStandardStreams = true
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+    }
+}

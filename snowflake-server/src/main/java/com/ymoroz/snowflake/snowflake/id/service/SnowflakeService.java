@@ -1,12 +1,14 @@
 package com.ymoroz.snowflake.snowflake.id.service;
 
 import lombok.ToString;
+import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 @ToString
+@Service
 public class SnowflakeService {
     private static final int NODE_ID_BITS = 10;
     private static final int SEQUENCE_BITS = 12;

@@ -1,7 +1,6 @@
 package com.ymoroz.snowflake.snowflake.id;
 
 import com.ymoroz.snowflake.client.SnowflakeClient;
-import net.devh.boot.grpc.server.config.GrpcServerProperties;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
