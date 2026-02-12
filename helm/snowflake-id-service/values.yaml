@@ -32,8 +32,8 @@ securityContext:
 
 service:
   type: ClusterIP
-  port: 8080
-  targetPort: 8080
+  port: 9090
+  targetPort: 9090
 
 ingress:
   enabled: false
@@ -68,23 +68,21 @@ affinity: {}
 
 # Application specific configuration
 app:
-  port: 8080
+  port: 9090
   name: snowflake-id-service
 
 # Health checks
 livenessProbe:
-  httpGet:
-    path: /snowflake/generateId
-    port: http
+  grpc:
+    port: 9090
   initialDelaySeconds: 30
   periodSeconds: 10
   timeoutSeconds: 5
   failureThreshold: 3
 
 readinessProbe:
-  httpGet:
-    path: /snowflake/generateId
-    port: http
+  grpc:
+    port: 9090
   initialDelaySeconds: 5
   periodSeconds: 5
   timeoutSeconds: 5

@@ -1,30 +1,38 @@
 plugins {
-	java
-	id("org.springframework.boot") version "4.0.0-SNAPSHOT"
-	id("io.spring.dependency-management") version "1.1.7"
+    java
+    pmd
 }
 
-group = "com.ymoroz.snowflake.snowflake"
-version = "0.0.1-SNAPSHOT"
-
-java {
-	toolchain {
-		languageVersion = JavaLanguageVersion.of(21)
-	}
+allprojects {
+    repositories {
+        mavenCentral()
+        maven { url = uri("https://repo.spring.io/snapshot") }
+    }
 }
 
-repositories {
-	mavenCentral()
-	maven { url = uri("https://repo.spring.io/snapshot") }
-}
+subprojects {
+    apply(plugin = "java")
+    apply(plugin = "pmd")
 
-dependencies {
-	implementation("org.springframework.boot:spring-boot-starter-web")
-	implementation("org.springframework.boot:spring-boot-starter-web")
-	compileOnly("org.projectlombok:lombok")
-	annotationProcessor("org.projectlombok:lombok")
-	testImplementation("org.springframework.boot:spring-boot-starter-test")
-	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-}
+    pmd {
+        isIgnoreFailures = false
+        toolVersion = "7.0.0"
+        ruleSets = listOf("category/java/errorprone.xml", "category/java/bestpractices.xml")
+    }
 
-tasks.test { useJUnitPlatform() }
+    tasks.withType<Pmd>().configureEach {
+        if (name.contains("Test")) {
+            exclude("**/*")
+        }
+    }
+
+    tasks.withType<Test>().configureEach {
+        jvmArgs("-XX:+EnableDynamicAgentLoading", "-Xshare:off")
+    }
+
+    if (name == "snowflake-proto") {
+        tasks.withType<Pmd>().configureEach {
+            exclude("**/com/ymoroz/snowflake/proto/**")
+        }
+    }
+}
