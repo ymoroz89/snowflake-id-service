@@ -25,12 +25,27 @@ Distributed ID generation service based on the Snowflake algorithm, exposed via 
   - Source of truth for API contracts (`.proto` files).
   - Generates gRPC stubs and protobuf classes used by both client and server.
 
+- `snowflake-loadtest`
+  - Gatling-based load testing module for gRPC ID generation throughput checks.
+  - Contains parameterized simulations for local or environment testing.
+
 - `helm/snowflake-id-service`
   - Helm chart for Kubernetes deployment.
   - Includes configurable values for image, replicas, probes, resources, and ingress.
 
 - `Dockerfile`
   - Container image definition for packaging the server module.
+
+## Module Versioning
+
+Module versions are managed independently in `gradle.properties`:
+
+- `snowflakeProtoVersion`
+- `snowflakeClientVersion`
+- `snowflakeServerVersion`
+- `snowflakeLoadtestVersion`
+
+Update these values when releasing each module.
 
 ## Tech Stack
 
@@ -82,6 +97,78 @@ snowflake:
 ```
 
 Then inject `SnowflakeClient` in your service.
+
+## Load Testing (Gatling)
+
+Run the default simulation:
+
+```bash
+./gradlew :snowflake-loadtest:gatlingRun --simulation com.ymoroz.snowflake.loadtest.SnowflakeGrpcSimulation
+```
+
+Override runtime parameters:
+
+```bash
+./gradlew :snowflake-loadtest:gatlingRun \
+  --simulation com.ymoroz.snowflake.loadtest.SnowflakeGrpcSimulation \
+  -Dsnowflake.host=localhost \
+  -Dsnowflake.port=9090 \
+  -Dsnowflake.users=200 \
+  -Dsnowflake.rampSeconds=30 \
+  -Dsnowflake.requestsPerUser=1000 \
+  -Dsnowflake.pauseMs=0 \
+  -Dsnowflake.callDeadlineMs=1000
+```
+
+## GitLab CI
+
+The repository includes a starter pipeline in `.gitlab-ci.yml` with these stages:
+
+- `build` (`./gradlew clean assemble`)
+- `test` (`./gradlew test`)
+- `loadtest` (starts `snowflake-server` and runs Gatling simulation)
+
+Run jobs locally with GitLab Runner:
+
+```bash
+gitlab-runner exec docker build
+gitlab-runner exec docker test
+gitlab-runner exec docker loadtest
+```
+
+Override load test parameters for local runner:
+
+```bash
+gitlab-runner exec docker \
+  --env SNOWFLAKE_USERS=200 \
+  --env SNOWFLAKE_RAMP_SECONDS=30 \
+  --env SNOWFLAKE_REQUESTS_PER_USER=1000 \
+  loadtest
+```
+
+Run GitLab Runner inside Docker (no host install):
+
+```bash
+docker compose -f docker-compose.gitlab-runner.yml up -d
+docker compose -f docker-compose.gitlab-runner.yml exec gitlab-runner gitlab-runner exec docker build
+docker compose -f docker-compose.gitlab-runner.yml exec gitlab-runner gitlab-runner exec docker test
+docker compose -f docker-compose.gitlab-runner.yml exec gitlab-runner gitlab-runner exec docker loadtest
+```
+
+Stop the runner container:
+
+```bash
+docker compose -f docker-compose.gitlab-runner.yml down
+```
+
+One-command local pipeline:
+
+```bash
+./scripts/run-local-ci.sh
+```
+
+This script runs `build`, `test`, and `loadtest`, then opens JaCoCo and Gatling reports in your browser.
+It tries `gitlab-runner exec docker` first and falls back to direct Gradle-in-Docker execution if local runner exec is unavailable.
 
 ## API Contract
 

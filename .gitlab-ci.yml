@@ -1,0 +1,79 @@
+image: gradle:8.11.1-jdk21
+
+stages:
+  - build
+  - test
+  - loadtest
+
+variables:
+  GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
+  GRADLE_OPTS: "-Dorg.gradle.daemon=false"
+
+cache:
+  key: "$CI_COMMIT_REF_SLUG"
+  paths:
+    - .gradle/wrapper
+    - .gradle/caches
+
+before_script:
+  - chmod +x ./gradlew
+
+build:
+  stage: build
+  script:
+    - ./gradlew clean assemble
+
+test:
+  stage: test
+  script:
+    - ./gradlew test
+  artifacts:
+    when: always
+    paths:
+      - "**/build/reports/tests/test"
+      - "**/build/test-results/test"
+
+loadtest:
+  stage: loadtest
+  variables:
+    SNOWFLAKE_HOST: "localhost"
+    SNOWFLAKE_PORT: "9090"
+    SNOWFLAKE_USERS: "100"
+    SNOWFLAKE_RAMP_SECONDS: "20"
+    SNOWFLAKE_REQUESTS_PER_USER: "100"
+    SNOWFLAKE_PAUSE_MS: "0"
+    SNOWFLAKE_CALL_DEADLINE_MS: "1000"
+  script:
+    - ./gradlew :snowflake-server:bootRun > server.log 2>&1 & echo $! > server.pid
+    - >
+      bash -lc '
+      for i in $(seq 1 90); do
+        if (echo > /dev/tcp/${SNOWFLAKE_HOST}/${SNOWFLAKE_PORT}) >/dev/null 2>&1; then
+          echo "snowflake-server is ready on ${SNOWFLAKE_HOST}:${SNOWFLAKE_PORT}"
+          break
+        fi
+        sleep 1
+        if [ "$i" -eq 90 ]; then
+          echo "Timed out waiting for snowflake-server startup"
+          cat server.log
+          exit 1
+        fi
+      done
+      '
+    - >
+      ./gradlew :snowflake-loadtest:gatlingRun
+      --simulation com.ymoroz.snowflake.loadtest.SnowflakeGrpcSimulation
+      -Dsnowflake.host=${SNOWFLAKE_HOST}
+      -Dsnowflake.port=${SNOWFLAKE_PORT}
+      -Dsnowflake.users=${SNOWFLAKE_USERS}
+      -Dsnowflake.rampSeconds=${SNOWFLAKE_RAMP_SECONDS}
+      -Dsnowflake.requestsPerUser=${SNOWFLAKE_REQUESTS_PER_USER}
+      -Dsnowflake.pauseMs=${SNOWFLAKE_PAUSE_MS}
+      -Dsnowflake.callDeadlineMs=${SNOWFLAKE_CALL_DEADLINE_MS}
+  after_script:
+    - if [ -f server.pid ]; then kill "$(cat server.pid)" || true; fi
+  artifacts:
+    when: always
+    paths:
+      - server.log
+      - snowflake-loadtest/build/reports/gatling

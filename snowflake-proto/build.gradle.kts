@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "com.ymoroz.snowflake"
-version = "0.0.1-SNAPSHOT"
+version = rootProject.findProperty("snowflakeProtoVersion") as String
 
 java {
     toolchain {
