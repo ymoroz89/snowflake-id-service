@@ -1,66 +1,67 @@
 # snowflake-id-service
 
-A gRPC service for generating unique Snowflake IDs.
+Distributed ID generation service based on the Snowflake algorithm, exposed via gRPC and packaged as a multi-module Gradle project.
 
-## Architecture
+## What This Project Provides
 
-The project is structured as a multi-module Gradle build:
+- A gRPC server that generates 64-bit unique IDs.
+- Shared protobuf contracts for server and clients.
+- A reusable Java client library with Spring Boot auto-configuration.
+- Container and Helm artifacts for deployment.
 
-- `snowflake-proto`: Protocol buffer definitions and generated gRPC client/server stubs
-- `snowflake-server`: gRPC server implementation using Spring Boot
-- `snowflake-client`: Java gRPC client library for easy integration
+## Project Modules
 
-## Building
+- `snowflake-server`
+  - Spring Boot gRPC service implementation.
+  - Contains the Snowflake generation logic and gRPC endpoint implementation.
+  - Entry point: `SnowflakeIdServiceApplication`.
+
+- `snowflake-client`
+  - Java client library for calling the gRPC service.
+  - Includes `SnowflakeClient` for manual use and Spring Boot auto-configuration.
+  - Useful for integrating ID generation into other JVM services.
+
+- `snowflake-proto`
+  - Source of truth for API contracts (`.proto` files).
+  - Generates gRPC stubs and protobuf classes used by both client and server.
+
+- `helm/snowflake-id-service`
+  - Helm chart for Kubernetes deployment.
+  - Includes configurable values for image, replicas, probes, resources, and ingress.
+
+- `Dockerfile`
+  - Container image definition for packaging the server module.
+
+## Tech Stack
+
+- Java 21
+- Spring Boot
+- gRPC + Protocol Buffers
+- Gradle (multi-module)
+- Docker
+- Helm
+
+## Build
 
 Build all modules:
-```shell
-./gradlew build
+
+```bash
+./gradlew clean build
 ```
 
-## Running the Server
+## Run Locally
 
-Run the gRPC server:
-```shell
+Start the gRPC server:
+
+```bash
 ./gradlew :snowflake-server:bootRun
 ```
 
-The server will start on port 9090.
+Default gRPC port: `9090`
 
-## Using the Client
+## Client Usage
 
-### Option 1: Using SnowflakeClient (Recommended)
-
-Add the `snowflake-client` dependency:
-
-```gradle
-dependencies {
-    implementation("com.ymoroz.snowflake:snowflake-client:0.0.1-SNAPSHOT")
-}
-```
-
-#### Spring Boot Integration
-
-If you are using Spring Boot, `SnowflakeClient` is automatically configured. You can customize the connection in your `application.yaml`:
-
-```yaml
-snowflake:
-  client:
-    host: localhost
-    port: 9090
-```
-
-Then simply inject it:
-
-```java
-@Autowired
-private SnowflakeClient snowflakeClient;
-
-public void someMethod() {
-    long id = snowflakeClient.generateId();
-}
-```
-
-#### Manual Usage
+### With `SnowflakeClient`
 
 ```java
 try (SnowflakeClient client = new SnowflakeClient("localhost", 9090)) {
@@ -69,54 +70,52 @@ try (SnowflakeClient client = new SnowflakeClient("localhost", 9090)) {
 }
 ```
 
-### Option 2: Using snowflake-proto directly
+### With Spring Boot Auto-Configuration
 
-The `snowflake-proto` module can be used as a Gradle dependency in other projects:
+`application.yaml`:
 
-```gradle
-dependencies {
-    implementation("com.ymoroz.snowflake:snowflake-proto:0.0.1-SNAPSHOT")
-}
+```yaml
+snowflake:
+  client:
+    host: localhost
+    port: 9090
 ```
 
-Example client usage:
+Then inject `SnowflakeClient` in your service.
 
-```java
-ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost", 9090)
-    .usePlaintext()
-    .build();
+## API Contract
 
-SnowflakeServiceGrpc.SnowflakeServiceBlockingStub stub =
-    SnowflakeServiceGrpc.newBlockingStub(channel);
+Proto definition:
 
-GenerateIdResponse response = stub.generateId(GenerateIdRequest.newBuilder().build());
-long id = response.getId();
+- `snowflake-proto/src/main/proto/snowflake.proto`
 
-channel.shutdown();
+The main RPC returns a generated 64-bit ID.
+
+## Container
+
+Build image:
+
+```bash
+docker build -t snowflake-id-service:latest .
 ```
 
-## Docker
+Run image:
 
-Build the Docker image:
-```shell
-docker build -t snowflake-id-service .
+```bash
+docker run --rm -p 9090:9090 snowflake-id-service:latest
 ```
 
-Tag and push:
-```shell
-docker image tag snowflake-id-service ymoroz/snowflake-id-service:latest
-docker push ymoroz/snowflake-id-service:latest
+## Kubernetes (Helm)
+
+Install the chart:
+
+```bash
+helm install snowflake-id-service ./helm/snowflake-id-service
 ```
 
-## Kubernetes Deployment
+Customize deployment via `helm/snowflake-id-service/values.yaml`.
 
-Load image into Kind:
-```shell
-kind load docker-image ymoroz/snowflake-id-service:latest
-```
+## Notes
 
-Package and install Helm chart:
-```shell
-helm package helm/snowflake-id-service
-helm install snowflake-id-service ./snowflake-id-service-0.1.0.tgz
-```
+- This repository intentionally avoids embedding personal/private registry coordinates in examples.
+- If you publish artifacts or images, replace placeholders with your own organization/repository names.
