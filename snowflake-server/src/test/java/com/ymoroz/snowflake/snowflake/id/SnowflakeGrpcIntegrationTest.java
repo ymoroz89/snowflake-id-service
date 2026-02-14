@@ -8,7 +8,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(properties = {
-        "grpc.server.port=9099",
+        "spring.grpc.server.port=9099",
         "snowflake.client.port=9099"
 })
 class SnowflakeGrpcIntegrationTest {

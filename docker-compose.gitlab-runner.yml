@@ -1,6 +1,6 @@
 services:
   gitlab-runner:
-    image: gitlab/gitlab-runner:alpine-v16.11.0
+    image: gitlab/gitlab-runner:latest
     container_name: snowflake-gitlab-runner
     working_dir: /workspace
     entrypoint: ["/bin/sh", "-lc"]

@@ -3,7 +3,7 @@ set -euo pipefail
 
 COMPOSE_FILE="docker-compose.gitlab-runner.yml"
 SERVICE="gitlab-runner"
-GRADLE_IMAGE="gradle:8.11.1-jdk21"
+GRADLE_IMAGE="gradle:9.3.1-jdk21"
 
 log() {
   printf '[local-ci] %s\n' "$*"

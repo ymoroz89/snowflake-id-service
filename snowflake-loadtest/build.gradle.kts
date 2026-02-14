@@ -1,10 +1,12 @@
 plugins {
     scala
-    id("io.gatling.gradle") version "3.13.4"
+    id("io.gatling.gradle")
 }
 
 group = "com.ymoroz.snowflake"
 version = rootProject.findProperty("snowflakeLoadtestVersion") as String
+
+val grpcVersion = rootProject.findProperty("grpcVersion") as String
 
 repositories {
     mavenCentral()
@@ -12,9 +14,9 @@ repositories {
 
 dependencies {
     gatlingImplementation(project(":snowflake-proto"))
-    gatlingImplementation("io.grpc:grpc-netty-shaded:1.78.0")
-    gatlingImplementation("io.grpc:grpc-protobuf:1.78.0")
-    gatlingImplementation("io.grpc:grpc-stub:1.78.0")
+    gatlingImplementation("io.grpc:grpc-netty-shaded:$grpcVersion")
+    gatlingImplementation("io.grpc:grpc-protobuf:$grpcVersion")
+    gatlingImplementation("io.grpc:grpc-stub:$grpcVersion")
 }
 
 tasks.withType<Test>().configureEach {
