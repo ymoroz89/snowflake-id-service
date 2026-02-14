@@ -49,11 +49,13 @@ Update these values when releasing each module.
 
 ## Tech Stack
 
-- Java 21
-- Spring Boot
+- Java 21, Scala (Gatling load tests)
+- Spring Boot 4 + Spring gRPC
 - gRPC + Protocol Buffers
 - Gradle (multi-module)
-- Docker
+- Lombok
+- PMD (static analysis), JaCoCo (code coverage)
+- Docker (distroless non-root image)
 - Helm
 
 ## Build
