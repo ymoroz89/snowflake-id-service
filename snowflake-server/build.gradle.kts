@@ -1,12 +1,15 @@
 plugins {
     java
     jacoco
-    id("org.springframework.boot") version "4.0.1"
-    id("io.spring.dependency-management") version "1.1.7"
+    id("org.springframework.boot")
 }
 
 group = "com.ymoroz.snowflake"
-version = "0.0.1-SNAPSHOT"
+version = rootProject.findProperty("snowflakeServerVersion") as String
+
+val springGrpcVersion = rootProject.findProperty("springGrpcVersion") as String
+val springBootVersion = rootProject.findProperty("springBootVersion") as String
+val lombokVersion = rootProject.findProperty("lombokVersion") as String
 
 java {
     toolchain {
@@ -21,14 +24,12 @@ repositories {
 
 dependencies {
     implementation(project(":snowflake-proto"))
-    implementation("io.grpc:grpc-netty-shaded:1.78.0")
-    implementation("io.grpc:grpc-protobuf:1.78.0")
-    implementation("io.grpc:grpc-stub:1.78.0")
-    implementation("org.springframework.boot:spring-boot-starter")
-    compileOnly("org.projectlombok:lombok")
-    annotationProcessor("org.projectlombok:lombok")
+    implementation("org.springframework.boot:spring-boot-starter:$springBootVersion")
+    implementation("org.springframework.grpc:spring-grpc-spring-boot-starter:$springGrpcVersion")
+    compileOnly("org.projectlombok:lombok:$lombokVersion")
+    annotationProcessor("org.projectlombok:lombok:$lombokVersion")
     testImplementation(project(":snowflake-client"))
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.springframework.boot:spring-boot-starter-test:$springBootVersion")
     testImplementation("org.mockito:mockito-inline:5.2.0")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }

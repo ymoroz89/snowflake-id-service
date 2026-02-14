@@ -1,0 +1,16 @@
+services:
+  gitlab-runner:
+    image: gitlab/gitlab-runner:latest
+    container_name: snowflake-gitlab-runner
+    working_dir: /workspace
+    entrypoint: ["/bin/sh", "-lc"]
+    command: ["sleep infinity"]
+    environment:
+      DOCKER_API_VERSION: "1.41"
+    volumes:
+      - ./:/workspace
+      - /var/run/docker.sock:/var/run/docker.sock
+      - gitlab-runner-config:/etc/gitlab-runner
+
+volumes:
+  gitlab-runner-config:

@@ -1,12 +1,15 @@
 plugins {
     java
     jacoco
-    id("com.google.protobuf") version "0.9.4"
+    id("com.google.protobuf")
     `maven-publish`
 }
 
 group = "com.ymoroz.snowflake"
-version = "0.0.1-SNAPSHOT"
+version = rootProject.findProperty("snowflakeProtoVersion") as String
+
+val grpcVersion = rootProject.findProperty("grpcVersion") as String
+val protobufVersion = rootProject.findProperty("protobufVersion") as String
 
 java {
     toolchain {
@@ -19,19 +22,19 @@ repositories {
 }
 
 dependencies {
-    implementation("io.grpc:grpc-protobuf:1.78.0")
-    implementation("io.grpc:grpc-stub:1.78.0")
-    implementation("com.google.protobuf:protobuf-java:4.29.3")
+    implementation("io.grpc:grpc-protobuf:$grpcVersion")
+    implementation("io.grpc:grpc-stub:$grpcVersion")
+    implementation("com.google.protobuf:protobuf-java:$protobufVersion")
     compileOnly("javax.annotation:javax.annotation-api:1.3.2")
 }
 
 protobuf {
     protoc {
-        artifact = "com.google.protobuf:protoc:4.29.3"
+        artifact = "com.google.protobuf:protoc:$protobufVersion"
     }
     plugins {
         register("grpc") {
-            artifact = "io.grpc:protoc-gen-grpc-java:1.78.0"
+            artifact = "io.grpc:protoc-gen-grpc-java:$grpcVersion"
         }
     }
     generateProtoTasks {

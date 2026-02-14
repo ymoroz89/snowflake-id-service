@@ -1,10 +1,14 @@
 plugins {
     java
     jacoco
+    id("io.spring.dependency-management")
 }
 
 group = "com.ymoroz.snowflake"
-version = "0.0.1-SNAPSHOT"
+version = rootProject.findProperty("snowflakeClientVersion") as String
+
+val grpcVersion = rootProject.findProperty("grpcVersion") as String
+val springBootVersion = rootProject.findProperty("springBootVersion") as String
 
 java {
     toolchain {
@@ -16,18 +20,23 @@ repositories {
     mavenCentral()
 }
 
+dependencyManagement {
+    imports {
+        mavenBom("org.springframework.boot:spring-boot-dependencies:$springBootVersion")
+    }
+}
+
 dependencies {
     implementation(project(":snowflake-proto"))
-    implementation("io.grpc:grpc-netty-shaded:1.78.0")
-    implementation("io.grpc:grpc-protobuf:1.78.0")
-    implementation("io.grpc:grpc-stub:1.78.0")
+    implementation("io.grpc:grpc-netty-shaded:$grpcVersion")
+    implementation("io.grpc:grpc-protobuf:$grpcVersion")
+    implementation("io.grpc:grpc-stub:$grpcVersion")
     compileOnly("javax.annotation:javax.annotation-api:1.3.2")
-    
-    // Spring Boot Starter for Configuration Properties
-    implementation("org.springframework.boot:spring-boot-starter:4.0.1")
-    annotationProcessor("org.springframework.boot:spring-boot-configuration-processor:4.0.1")
-    
-    testImplementation("org.springframework.boot:spring-boot-starter-test:4.0.1")
+
+    implementation("org.springframework.boot:spring-boot-starter")
+    annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
+
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
