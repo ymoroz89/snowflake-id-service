@@ -50,7 +50,7 @@ Update these values when releasing each module.
 ## Tech Stack
 
 - Java 21, Scala (Gatling load tests)
-- Spring Boot 4 + Spring gRPC
+- Spring Boot 4.0.2 + Spring gRPC
 - gRPC + Protocol Buffers
 - Gradle (multi-module)
 - Lombok

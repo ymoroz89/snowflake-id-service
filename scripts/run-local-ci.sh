@@ -16,6 +16,25 @@ ensure_cmd() {
   fi
 }
 
+ensure_kind_cluster() {
+  local config_file="${1:-k8s/kind-config.yaml}"
+  local cluster_name
+  cluster_name=$(grep "^name:" "$config_file" | awk '{print $2}')
+
+  if [ -z "$cluster_name" ]; then
+    log "Could not determine cluster name from $config_file"
+    exit 1
+  fi
+
+  if kind get clusters | grep -q "^${cluster_name}$"; then
+    log "Kind cluster '${cluster_name}' already exists"
+  else
+    log "Creating kind cluster '${cluster_name}' from $config_file"
+    kind create cluster --config "$config_file"
+    log "Kind cluster '${cluster_name}' created successfully"
+  fi
+}
+
 start_docker_if_needed() {
   if docker info >/dev/null 2>&1; then
     log "Docker daemon is already running"
@@ -160,20 +179,85 @@ open_reports() {
 
 main() {
   ensure_cmd docker
+  ensure_cmd kind
 
-  log "Starting local GitLab pipeline (build -> test -> loadtest)"
+  log "========================================"
+  log "Starting local GitLab pipeline"
+  log "Stages: build → test → docker-build → deploy → loadtest"
+  log "========================================"
+  echo
+
   start_docker_if_needed
+
+  ensure_kind_cluster k8s/kind-config.yaml
 
   log "Starting GitLab Runner container"
   docker compose -f "$COMPOSE_FILE" up -d "$SERVICE"
+  echo
 
-  if run_job build && run_job test && run_job loadtest; then
-    log "Local pipeline finished successfully (gitlab-runner mode)"
-  else
-    log "gitlab-runner local execution failed"
+  log "========================================"
+  log "Stage: build"
+  log "========================================"
+  if ! run_job build; then
+    log "Build stage failed"
     run_jobs_fallback
     log "Local pipeline finished successfully (fallback mode)"
+    open_reports
+    exit 0
   fi
+  echo
+
+  log "========================================"
+  log "Stage: test"
+  log "========================================"
+  if ! run_job test; then
+    log "Test stage failed"
+    run_jobs_fallback
+    log "Local pipeline finished successfully (fallback mode)"
+    open_reports
+    exit 0
+  fi
+  echo
+
+  log "========================================"
+  log "Stage: docker-build"
+  log "========================================"
+  if ! run_job docker-build; then
+    log "Docker-build stage failed, continuing with fallback"
+    run_jobs_fallback
+    log "Local pipeline finished successfully (fallback mode)"
+    open_reports
+    exit 0
+  fi
+  echo
+
+  log "========================================"
+  log "Stage: deploy"
+  log "========================================"
+  if ! run_job deploy; then
+    log "Deploy stage failed, continuing with fallback"
+    run_jobs_fallback
+    log "Local pipeline finished successfully (fallback mode)"
+    open_reports
+    exit 0
+  fi
+  echo
+
+  log "========================================"
+  log "Stage: loadtest"
+  log "========================================"
+  if ! run_job loadtest; then
+    log "Loadtest stage failed"
+    run_jobs_fallback
+    log "Local pipeline finished successfully (fallback mode)"
+    open_reports
+    exit 0
+  fi
+  echo
+
+  log "========================================"
+  log "All stages completed successfully!"
+  log "========================================"
 
   open_reports
 }

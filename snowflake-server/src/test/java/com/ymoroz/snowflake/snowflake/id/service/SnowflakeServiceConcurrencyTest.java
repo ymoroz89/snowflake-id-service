@@ -10,10 +10,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class SnowflakeServiceConcurrencyTest {
 
-    SnowflakeService service = new SnowflakeService();
+    SnowflakeService service = new SnowflakeService("snowflake-1");
 
     @Test
-    void nextId_isThreadSafe_unique() throws Exception {
+    void nextIdUniqueness() throws Exception {
         int calls = 100_000;
 
         ExecutorService pool = Executors.newVirtualThreadPerTaskExecutor();

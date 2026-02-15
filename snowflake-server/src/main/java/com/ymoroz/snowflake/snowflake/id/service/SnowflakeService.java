@@ -1,6 +1,8 @@
 package com.ymoroz.snowflake.snowflake.id.service;
 
 import lombok.ToString;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -9,6 +11,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 @ToString
 @Service
+@Slf4j
 public class SnowflakeService {
     private static final int NODE_ID_BITS = 10;
     private static final int SEQUENCE_BITS = 12;
@@ -22,11 +25,7 @@ public class SnowflakeService {
     private long lastTimestamp = -1L;
     private long sequence = 0L;
 
-    public SnowflakeService() {
-        this(System.getenv("HOSTNAME") != null ? System.getenv("HOSTNAME") : "snowflake-1");
-    }
-
-    public SnowflakeService(String hostname) {
+    public SnowflakeService(@Value("${HOSTNAME:snowflake-1}") String hostname) {
         this.nodeId = extractOrdinal(hostname);
     }
 
@@ -36,6 +35,7 @@ public class SnowflakeService {
             long currentTimestamp = timestamp();
 
             if (currentTimestamp < lastTimestamp) {
+                log.error("Invalid System Clock!");
                 throw new IllegalStateException("Invalid System Clock!");
             }
 
@@ -71,12 +71,11 @@ public class SnowflakeService {
     }
 
     private static long extractOrdinal(String hostname) {
+        // snowflake-id-service-6f6dcbc498-hs2vp
         if (hostname == null) return 0;
         String[] parts = hostname.split("-");
-        try {
-            return Long.parseLong(parts[parts.length - 1]);
-        } catch (NumberFormatException e) {
-            return 0; // fallback
-        }
+        long hashCode = parts[parts.length - 1].hashCode();
+        log.info("Extracted ordinal from hostname: {}", hashCode);
+        return hashCode;
     }
 }
