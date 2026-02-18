@@ -8,3 +8,5 @@
 /snowflake-loadtest/build/
 /*.log
 /*.pid
+/ci-cd/local.env
+/ci-cd/*.log

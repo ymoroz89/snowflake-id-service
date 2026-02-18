@@ -42,6 +42,10 @@ spec:
               value: {{ .Values.app.name }}
             - name: GRPC_SERVER_PORT
               value: "{{ .Values.app.port }}"
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
           {{- if .Values.livenessProbe }}
           livenessProbe:
             {{- toYaml .Values.livenessProbe | nindent 12 }}

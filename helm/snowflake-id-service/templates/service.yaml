@@ -11,5 +11,8 @@ spec:
       targetPort: {{ .Values.service.targetPort }}
       protocol: TCP
       name: grpc
+      {{- if eq .Values.service.type "NodePort" }}
+      nodePort: {{ .Values.service.nodePort }}
+      {{- end }}
   selector:
     {{- include "snowflake-id-service.selectorLabels" . | nindent 4 }}
