@@ -1,4 +1,4 @@
-package com.ymoroz.snowflake.snowflake.id.service;
+package com.ymoroz.snowflake.id.service;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -12,6 +12,7 @@ class SnowflakeServiceTest {
 
     private static final String KUBERNETES_HOSTNAME = "snowflake-id-service-6f6dcbc498-hs2vp";
 
+
     @Test
     void testExtractOrdinalKubernetesHostname() {
         SnowflakeService service = new SnowflakeService(KUBERNETES_HOSTNAME);
@@ -22,10 +23,7 @@ class SnowflakeServiceTest {
 
     @Test
     void testExtractOrdinalNullHostname() {
-        SnowflakeService service = new SnowflakeService(null);
-        long id = service.nextId();
-        long extractedNodeId = (id >> 12) & 0x3FF;
-        assertEquals(0, extractedNodeId);
+        assertThrows(IllegalArgumentException.class, () -> new SnowflakeService(null));
     }
 
     @Test

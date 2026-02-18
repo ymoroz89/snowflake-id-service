@@ -1,4 +1,4 @@
-package com.ymoroz.snowflake.snowflake.id.service;
+package com.ymoroz.snowflake.id.service;
 
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.Optional;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -25,7 +26,7 @@ public class SnowflakeService {
     private long lastTimestamp = -1L;
     private long sequence = 0L;
 
-    public SnowflakeService(@Value("${HOSTNAME:snowflake-1}") String hostname) {
+    public SnowflakeService(@Value("${HOSTNAME}") String hostname) {
         this.nodeId = extractOrdinal(hostname);
     }
 
@@ -72,11 +73,10 @@ public class SnowflakeService {
 
     private static long extractOrdinal(String hostname) {
         log.info("Extracting ordinal from hostname: {}", hostname);
-        // snowflake-id-service-6f6dcbc498-hs2vp
-        if (hostname == null) return 0;
-        String[] parts = hostname.split("-");
-        long hashCode = parts[parts.length - 1].hashCode();
-        log.info("Extracted ordinal from hostname: {}", hashCode);
-        return hashCode;
+        return Optional.ofNullable(hostname)
+                .map(hn -> hn.split("-"))
+                .map(parts -> parts[parts.length - 1])
+                .map(String::hashCode)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid hostname: " + hostname));
     }
 }

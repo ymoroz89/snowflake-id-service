@@ -1,9 +1,9 @@
-package com.ymoroz.snowflake.snowflake.id.grpc;
+package com.ymoroz.snowflake.id.grpc;
 
 import com.ymoroz.snowflake.proto.GenerateIdRequest;
 import com.ymoroz.snowflake.proto.GenerateIdResponse;
 import com.ymoroz.snowflake.proto.SnowflakeServiceGrpc;
-import com.ymoroz.snowflake.snowflake.id.service.SnowflakeService;
+import com.ymoroz.snowflake.id.service.SnowflakeService;
 import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

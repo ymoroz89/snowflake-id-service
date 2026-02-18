@@ -37,28 +37,59 @@ spec:
             - name: grpc
               containerPort: {{ .Values.app.port }}
               protocol: TCP
+            - name: health
+              containerPort: {{ .Values.app.healthPort }}
+              protocol: TCP
           env:
             - name: SPRING_APPLICATION_NAME
               value: {{ .Values.app.name }}
             - name: GRPC_SERVER_PORT
               value: "{{ .Values.app.port }}"
+            - name: APP_HEALTH_PORT
+              value: "{{ .Values.app.healthPort }}"
             - name: HOSTNAME
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
+          {{- if .Values.startupProbe }}
+          startupProbe:
+            grpc:
+              port: {{ .Values.startupProbe.grpc.port }}
+              service: {{ .Values.startupProbe.grpc.service | quote }}
+            initialDelaySeconds: {{ .Values.startupProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.startupProbe.periodSeconds }}
+            failureThreshold: {{ .Values.startupProbe.failureThreshold }}
+          {{- end }}
           {{- if .Values.livenessProbe }}
           livenessProbe:
-            {{- toYaml .Values.livenessProbe | nindent 12 }}
+            grpc:
+              port: {{ .Values.livenessProbe.grpc.port }}
+              service: {{ .Values.livenessProbe.grpc.service | default "" | quote }}
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
           {{- end }}
           {{- if .Values.readinessProbe }}
           readinessProbe:
-            {{- toYaml .Values.readinessProbe | nindent 12 }}
+            grpc:
+              port: {{ .Values.readinessProbe.grpc.port }}
+              service: {{ .Values.readinessProbe.grpc.service | quote }}
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
           {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
             - name: tmp
               mountPath: /tmp
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 30"]
+      terminationGracePeriodSeconds: 45
       volumes:
         - name: tmp
           emptyDir: {}

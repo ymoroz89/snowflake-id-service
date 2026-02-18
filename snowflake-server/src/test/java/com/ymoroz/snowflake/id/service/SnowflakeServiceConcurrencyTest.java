@@ -1,5 +1,6 @@
-package com.ymoroz.snowflake.snowflake.id.service;
+package com.ymoroz.snowflake.id.service;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
@@ -10,7 +11,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class SnowflakeServiceConcurrencyTest {
 
-    SnowflakeService service = new SnowflakeService("snowflake-1");
+    private SnowflakeService service;
+
+    @BeforeEach
+    void setUp() {
+        service = new SnowflakeService("snowflake-1");
+    }
 
     @Test
     void nextIdUniqueness() throws Exception {

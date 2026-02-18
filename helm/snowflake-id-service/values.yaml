@@ -67,15 +67,11 @@ tolerations: []
 
 affinity: {}
 
-# Application specific configuration
-app:
-  port: 9090
-  name: snowflake-id-service
-
 # Health checks
 livenessProbe:
   grpc:
-    port: 9090
+    port: 9091
+    service: "liveness" # Check overall server status
   initialDelaySeconds: 30
   periodSeconds: 10
   timeoutSeconds: 5
@@ -83,7 +79,7 @@ livenessProbe:
 
 readinessProbe:
   grpc:
-    port: 9090
+    port: 9091
   initialDelaySeconds: 5
   periodSeconds: 5
   timeoutSeconds: 5
