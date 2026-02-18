@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Set up logging
+LOG_FILE="/Users/yuriimoroz/Documents/projects/snowflake-id-service/ci-cd/ci-cd.log"
+mkdir -p "$(dirname "$LOG_FILE")"
+exec > >(tee -a "$LOG_FILE")
+exec 2>&1
+
 log() {
   printf '[docker-build] %s\n' "$*"
 }
@@ -61,12 +67,6 @@ docker_build() {
   
   log "Building Docker image"
   docker build -t "snowflake-id-service:$(git rev-parse --short HEAD)" -t "snowflake-id-service:latest" .
-  
-  log "Saving Docker image"
-  docker save "snowflake-id-service:latest" -o snowflake-id-service-latest.tar
-  
-  log "Docker build artifacts:"
-  ls -lh snowflake-id-service-latest.tar
   
   echo
 }

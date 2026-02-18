@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Set up logging
+LOG_FILE="/Users/yuriimoroz/Documents/projects/snowflake-id-service/ci-cd/ci-cd.log"
+mkdir -p "$(dirname "$LOG_FILE")"
+exec > >(tee -a "$LOG_FILE")
+exec 2>&1
+
 log() {
   printf '[docker-publish] %s\n' "$*"
 }
@@ -60,9 +66,9 @@ docker_publish() {
   start_docker_if_needed
   
   # Load environment variables from local.env
-  if [ -f "./scripts/local.env" ]; then
+  if [ -f "./ci-cd/local.env" ]; then
     log "Loading environment variables from local.env"
-    source ./scripts/local.env
+    source ./ci-cd/local.env
   else
     log "Warning: local.env file not found"
   fi

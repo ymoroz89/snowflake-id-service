@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Set up logging
+LOG_FILE="/Users/yuriimoroz/Documents/projects/snowflake-id-service/ci-cd/ci-cd.log"
+mkdir -p "$(dirname "$LOG_FILE")"
+exec > >(tee -a "$LOG_FILE")
+exec 2>&1
+
 log() {
   printf '[local-ci] %s\n' "$*"
 }
@@ -12,27 +18,32 @@ main() {
   echo
 
   log "Running build stage"
-  ./scripts/stage-build.sh
+  ./ci-cd/stage-build.sh
   echo
 
   log "Running test stage"
-  ./scripts/stage-test.sh
+  ./ci-cd/stage-test.sh
   echo
 
   log "Running docker-build stage"
-  ./scripts/stage-docker-build.sh
+  ./ci-cd/stage-docker-build.sh
   echo
 
   log "Running docker-publish stage"
-  ./scripts/stage-docker-publish.sh
+  ./ci-cd/stage-docker-publish.sh
   echo
 
   log "Running deploy stage"
-  ./scripts/stage-deploy.sh
+  ./ci-cd/stage-deploy.sh
   echo
 
   log "Running loadtest stage"
-  ./scripts/stage-loadtest.sh
+  ./ci-cd/stage-loadtest.sh
+  echo
+
+  # Add cluster cleanup at the end
+  log "Running cleanup stage"
+  ./ci-cd/stage-cleanup.sh
   echo
 
   log "========================================"

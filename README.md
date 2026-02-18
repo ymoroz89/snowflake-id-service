@@ -122,55 +122,75 @@ Override runtime parameters:
   -Dsnowflake.callDeadlineMs=1000
 ```
 
-## GitLab CI
+## CI/CD Pipeline
 
-The repository includes a starter pipeline in `.gitlab-ci.yml` with these stages:
+The project includes a comprehensive local CI/CD pipeline in the `ci-cd/` directory with the following stages:
 
-- `build` (`./gradlew clean assemble`)
-- `test` (`./gradlew test`)
-- `loadtest` (starts `snowflake-server` and runs Gatling simulation)
+### Pipeline Stages
 
-Run jobs locally with GitLab Runner:
+1. **build**: Compiles the project using Gradle
+2. **test**: Runs all unit tests
+3. **docker-build**: Builds Docker image with Git commit hash and `latest` tags
+4. **docker-publish**: Publishes image to Docker Hub (requires authentication)
+5. **deploy**: Deploys to local Kubernetes cluster using Kind and Helm
+6. **loadtest**: Runs Gatling load tests against local server
+7. **cleanup**: Cleans up Kubernetes cluster and Docker images (with confirmation)
 
-```bash
-gitlab-runner exec docker build
-gitlab-runner exec docker test
-gitlab-runner exec docker loadtest
-```
+### Running the Pipeline
 
-Override load test parameters for local runner:
+#### One-Command Execution
 
-```bash
-gitlab-runner exec docker \
-  --env SNOWFLAKE_USERS=200 \
-  --env SNOWFLAKE_RAMP_SECONDS=30 \
-  --env SNOWFLAKE_REQUESTS_PER_USER=1000 \
-  loadtest
-```
-
-Run GitLab Runner inside Docker (no host install):
+Run the complete pipeline:
 
 ```bash
-docker compose -f docker-compose.gitlab-runner.yml up -d
-docker compose -f docker-compose.gitlab-runner.yml exec gitlab-runner gitlab-runner exec docker build
-docker compose -f docker-compose.gitlab-runner.yml exec gitlab-runner gitlab-runner exec docker test
-docker compose -f docker-compose.gitlab-runner.yml exec gitlab-runner gitlab-runner exec docker loadtest
+./ci-cd/run-local-ci.sh
 ```
 
-Stop the runner container:
+#### Stage-by-Stage Execution
+
+Run individual stages:
 
 ```bash
-docker compose -f docker-compose.gitlab-runner.yml down
+# Build stage
+./ci-cd/stage-build.sh
+
+# Test stage
+./ci-cd/stage-test.sh
+
+# Docker build stage
+./ci-cd/stage-docker-build.sh
+
+# Docker publish stage
+./ci-cd/stage-docker-publish.sh
+
+# Deploy to Kubernetes
+./ci-cd/stage-deploy.sh
+
+# Load test stage
+./ci-cd/stage-loadtest.sh
+
+# Cleanup stage
+./ci-cd/stage-cleanup.sh
 ```
 
-One-command local pipeline:
+### Configuration
+
+The pipeline uses `ci-cd/local.env` for Docker Hub credentials:
 
 ```bash
-./scripts/run-local-ci.sh
+export DOCKERHUB_USERNAME=your-username
+export DOCKERHUB_PASSWORD=your-password
 ```
 
-This script runs `build`, `test`, and `loadtest`, then opens JaCoCo and Gatling reports in your browser.
-It tries `gitlab-runner exec docker` first and falls back to direct Gradle-in-Docker execution if local runner exec is unavailable.
+### Key Features
+
+- Automatic Docker daemon detection and startup
+- Kind Kubernetes cluster management
+- Helm chart deployment with configurable values
+- Gatling load testing with predefined parameters
+- Cleanup with interactive confirmation for cluster and images
+- Comprehensive logging to `ci-cd/ci-cd.log`
+- Parallel execution of stages with clear separation
 
 ## API Contract
 
