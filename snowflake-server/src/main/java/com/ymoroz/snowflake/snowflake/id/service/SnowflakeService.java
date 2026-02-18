@@ -71,6 +71,7 @@ public class SnowflakeService {
     }
 
     private static long extractOrdinal(String hostname) {
+        log.info("Extracting ordinal from hostname: {}", hostname);
         // snowflake-id-service-6f6dcbc498-hs2vp
         if (hostname == null) return 0;
         String[] parts = hostname.split("-");

@@ -8,3 +8,4 @@
 /snowflake-loadtest/build/
 /*.log
 /*.pid
+/scripts/local.env
