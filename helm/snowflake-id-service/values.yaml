@@ -67,6 +67,12 @@ tolerations: []
 
 affinity: {}
 
+# Application specific configuration
+app:
+  port: 9090
+  healthPort: 9091
+  name: snowflake-id-service
+
 # Health checks
 livenessProbe:
   grpc:

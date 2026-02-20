@@ -49,7 +49,7 @@ deploy() {
   ensure_kind_cluster k8s/kind-config.yaml
   
   log "Loading Docker image into Kind cluster"
-  kind load image-archive snowflake-id-service-latest.tar --name dev-cluster
+  kind load docker-image snowflake-id-service:latest --name dev-cluster
   
   log "Deploying to Kubernetes with Helm"
   helm upgrade --install snowflake-id-service ./helm/snowflake-id-service \
