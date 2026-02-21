@@ -72,11 +72,12 @@ public class SnowflakeService {
     }
 
     private static long extractOrdinal(String hostname) {
-        log.info("Extracting ordinal from hostname: {}", hostname);
         return Optional.ofNullable(hostname)
-                .map(hn -> hn.split("-"))
+                .filter(h -> !h.isEmpty())
+                .map(h -> h.split("-"))
+                .filter(parts -> parts.length > 0)
                 .map(parts -> parts[parts.length - 1])
-                .map(String::hashCode)
+                .map(Long::parseLong)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid hostname: " + hostname));
     }
 }

@@ -10,7 +10,7 @@ import static org.mockito.Mockito.*;
 
 class SnowflakeServiceTest {
 
-    private static final String KUBERNETES_HOSTNAME = "snowflake-id-service-6f6dcbc498-hs2vp";
+    private static final String KUBERNETES_HOSTNAME = "snowflake-id-service-1";
 
 
     @Test
@@ -18,7 +18,7 @@ class SnowflakeServiceTest {
         SnowflakeService service = new SnowflakeService(KUBERNETES_HOSTNAME);
         long id = service.nextId();
         long extractedNodeId = (id >> 12) & 0x3FF;
-        assertEquals(385, extractedNodeId);
+        assertEquals(1, extractedNodeId);
     }
 
     @Test
