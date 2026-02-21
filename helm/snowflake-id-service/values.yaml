@@ -37,15 +37,19 @@ service:
   nodePort: 30090
 
 ingress:
-  enabled: false
-  className: ""
-  annotations: {}
+  enabled: true
+  className: "kong"
+  annotations:
+    konghq.com/protocols: "grpc"
   hosts:
     - host: snowflake-id-service.local
       paths:
         - path: /
           pathType: Prefix
-  tls: []
+  tls:
+    - hosts:
+        - snowflake-id-service.local
+      secretName: snowflake-id-service-tls
 
 resources:
   limits:
@@ -73,11 +77,18 @@ app:
   healthPort: 9091
   name: snowflake-id-service
 
+# Persistence configuration
+persistence:
+  enabled: true
+  accessMode: ReadWriteOnce
+  size: 10Mi
+  storageClass: "" # Use default storage class
+  # storageClassName: "standard" # Uncomment to specify storage class
+
 # Health checks
 livenessProbe:
   grpc:
     port: 9091
-    service: "liveness" # Check overall server status
   initialDelaySeconds: 30
   periodSeconds: 10
   timeoutSeconds: 5

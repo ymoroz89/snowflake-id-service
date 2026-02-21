@@ -15,7 +15,7 @@ class SnowflakeServiceConcurrencyTest {
 
     @BeforeEach
     void setUp() {
-        service = new SnowflakeService("snowflake-1");
+        service = new SnowflakeService("snowflake-1", "/tmp/snowflake.state");
     }
 
     @Test

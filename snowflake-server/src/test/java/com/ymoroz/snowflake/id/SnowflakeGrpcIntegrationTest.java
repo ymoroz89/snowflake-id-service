@@ -12,7 +12,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(properties = {
         "spring.grpc.server.port=9099",
         "snowflake.client.port=9099",
-        "HOSTNAME=snowflake-1"
+        "HOSTNAME=snowflake-1",
+        "snowflake.state.file=/tmp/snowflake.state"
 })
 class SnowflakeGrpcIntegrationTest {
 

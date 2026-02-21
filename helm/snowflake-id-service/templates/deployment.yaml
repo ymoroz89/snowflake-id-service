@@ -5,9 +5,8 @@ metadata:
   labels:
     {{- include "snowflake-id-service.labels" . | nindent 4 }}
 spec:
-  {{- if not .Values.autoscaling.enabled }}
+  serviceName: {{ include "snowflake-id-service.fullname" . }}-headless
   replicas: {{ .Values.replicaCount }}
-  {{- end }}
   selector:
     matchLabels:
       {{- include "snowflake-id-service.selectorLabels" . | nindent 6 }}
@@ -45,12 +44,12 @@ spec:
               value: {{ .Values.app.name }}
             - name: GRPC_SERVER_PORT
               value: "{{ .Values.app.port }}"
-            - name: APP_HEALTH_PORT
-              value: "{{ .Values.app.healthPort }}"
             - name: HOSTNAME
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
+            - name: SNOWFLAKE_STATE_FILE
+              value: "/data/snowflake.state"
           {{- if .Values.startupProbe }}
           startupProbe:
             grpc:
@@ -83,6 +82,8 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
+            - name: data
+              mountPath: /data
             - name: tmp
               mountPath: /tmp
           lifecycle:
@@ -105,3 +106,14 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ {{ .Values.persistence.accessMode | quote }} ]
+        {{- if .Values.persistence.storageClass }}
+        storageClassName: {{ .Values.persistence.storageClass | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size | quote }}

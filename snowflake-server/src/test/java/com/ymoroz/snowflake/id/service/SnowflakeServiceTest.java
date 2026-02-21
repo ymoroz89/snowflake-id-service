@@ -15,7 +15,7 @@ class SnowflakeServiceTest {
 
     @Test
     void testExtractOrdinalKubernetesHostname() {
-        SnowflakeService service = new SnowflakeService(KUBERNETES_HOSTNAME);
+        SnowflakeService service = new SnowflakeService(KUBERNETES_HOSTNAME, "/tmp/snowflake.state");
         long id = service.nextId();
         long extractedNodeId = (id >> 12) & 0x3FF;
         assertEquals(1, extractedNodeId);
@@ -23,19 +23,19 @@ class SnowflakeServiceTest {
 
     @Test
     void testExtractOrdinalNullHostname() {
-        assertThrows(IllegalArgumentException.class, () -> new SnowflakeService(null));
+        assertThrows(IllegalArgumentException.class, () -> new SnowflakeService(null, "/tmp/snowflake.state"));
     }
 
     @Test
     void testDefaultConstructor() {
-        SnowflakeService service = new SnowflakeService(KUBERNETES_HOSTNAME);
+        SnowflakeService service = new SnowflakeService(KUBERNETES_HOSTNAME, "/tmp/snowflake.state");
         assertNotNull(service);
         service.nextId();
     }
 
     @Test
     void testNextIdIncrementsSequence() {
-        SnowflakeService service = new SnowflakeService(KUBERNETES_HOSTNAME);
+        SnowflakeService service = new SnowflakeService(KUBERNETES_HOSTNAME, "/tmp/snowflake.state");
         
         try (MockedStatic<Instant> mockedInstant = mockStatic(Instant.class, CALLS_REAL_METHODS)) {
             Instant fixedTime = Instant.ofEpochMilli(1700000000000L);
@@ -52,7 +52,7 @@ class SnowflakeServiceTest {
 
     @Test
     void testClockDriftThrowsException() {
-        SnowflakeService service = new SnowflakeService(KUBERNETES_HOSTNAME);
+        SnowflakeService service = new SnowflakeService(KUBERNETES_HOSTNAME, "/tmp/snowflake.state");
         
         try (MockedStatic<Instant> mockedInstant = mockStatic(Instant.class, CALLS_REAL_METHODS)) {
             Instant time1 = Instant.ofEpochMilli(1700000000000L);
@@ -68,7 +68,7 @@ class SnowflakeServiceTest {
     
     @Test
     void testToString() {
-        SnowflakeService service = new SnowflakeService(KUBERNETES_HOSTNAME);
+        SnowflakeService service = new SnowflakeService(KUBERNETES_HOSTNAME, "/tmp/snowflake.state");
         String toString = service.toString();
         assertNotNull(toString);
         assertTrue(toString.contains("SnowflakeService"));
