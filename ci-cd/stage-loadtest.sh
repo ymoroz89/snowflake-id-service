@@ -22,7 +22,7 @@ loadtest() {
   
   log "Waiting for snowflake-server to be ready"
   local snowflake_host="localhost"
-  local snowflake_port="9090"
+  local snowflake_port="443"
   
   for i in $(seq 1 90); do
     if (echo > /dev/tcp/${snowflake_host}/${snowflake_port}) >/dev/null 2>&1; then

@@ -31,13 +31,15 @@ The following table lists the configurable parameters and their default values:
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `replicaCount` | Number of replicas | `1` |
-| `image.repository` | Image repository | `snowflake-id-service` |
+| `replicaCount` | Number of replicas | `2` |
+| `image.repository` | Image repository | `ymoroz/snowflake-id-service` |
 | `image.tag` | Image tag | `latest` |
 | `image.pullPolicy` | Image pull policy | `IfNotPresent` |
-| `service.type` | Kubernetes service type | `ClusterIP` |
-| `service.port` | Service port | `8080` |
-| `ingress.enabled` | Enable ingress | `false` |
+| `service.type` | Kubernetes service type | `NodePort` |
+| `service.port` | Service port | `9090` |
+| `ingress.enabled` | Enable ingress | `true` |
+| `ingress.className` | Ingress class | `nginx` |
+| `ingress.annotations.nginx.ingress.kubernetes.io/backend-protocol` | NGINX upstream protocol | `GRPC` |
 | `ingress.hosts` | Ingress hosts | `snowflake-id-service.local` |
 | `resources.limits.cpu` | CPU limit | `500m` |
 | `resources.limits.memory` | Memory limit | `512Mi` |
@@ -60,12 +62,15 @@ kubectl port-forward svc/my-snowflake-service 8080:8080
 curl http://localhost:8080/snowflake/generateId
 ```
 
-#### Enable ingress for external access
+#### Enable ingress for external gRPC access (ingress-nginx)
 ```yaml
 ingress:
   enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: GRPC
   hosts:
-    - host: snowflake-id.example.com
+    - host: snowflake-id-service.local
       paths:
         - path: /
           pathType: Prefix
@@ -82,7 +87,7 @@ helm upgrade my-snowflake-service ./helm/snowflake-id-service --set replicaCount
 ```yaml
 autoscaling:
   enabled: true
-  minReplicas: 1
+  minReplicas: 2
   maxReplicas: 10
   targetCPUUtilizationPercentage: 80
 ```

@@ -2,10 +2,9 @@
 replicaCount: 2
 
 image:
-  repository: "ymoroz/snowflake-id-service"
-  pullPolicy: IfNotPresent
+  repository: "snowflake-id-service"
+  pullPolicy: Never
   tag: "latest"
-  size: 2GB
 
 imagePullSecrets: []
 nameOverride: ""
@@ -38,17 +37,17 @@ service:
 
 ingress:
   enabled: true
-  className: "kong"
+  className: "nginx"
   annotations:
-    konghq.com/protocols: "grpc"
+    nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
   hosts:
-    - host: snowflake-id-service.local
+    - host: localhost
       paths:
         - path: /
           pathType: Prefix
   tls:
     - hosts:
-        - snowflake-id-service.local
+        - localhost
       secretName: snowflake-id-service-tls
 
 resources:
@@ -56,14 +55,15 @@ resources:
     cpu: 500m
     memory: 512Mi
   requests:
-    cpu: 100m
-    memory: 128Mi
+    cpu: 300m
+    memory: 384Mi
 
 autoscaling:
-  enabled: false
-  minReplicas: 1
+  enabled: true
+  minReplicas: 2
   maxReplicas: 100
-  targetCPUUtilizationPercentage: 80
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
 
 nodeSelector: {}
 

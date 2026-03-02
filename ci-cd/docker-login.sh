@@ -8,7 +8,7 @@ exec > >(tee -a "$LOG_FILE")
 exec 2>&1
 
 log() {
-  printf '[docker-publish] %s\n' "$*"
+  printf '[docker-login] %s\n' "$*"
 }
 
 ensure_cmd() {
@@ -55,25 +55,24 @@ start_docker_if_needed() {
   exit 1
 }
 
-docker_publish() {
+docker_login() {
   log "========================================"
-  log "Stage: docker-publish"
+  log "Stage: docker-login"
   log "========================================"
   
   ensure_cmd docker
   
   log "Starting Docker daemon"
   start_docker_if_needed
-
-  log "Logging in to Docker Hub"
-  ./ci-cd/docker-login.sh
-
-  # Load environment variables from local.env if not already loaded
+  
+  # Load environment variables from local.env
   if [ -f "./ci-cd/local.env" ]; then
     log "Loading environment variables from local.env"
     source ./ci-cd/local.env
+  else
+    log "Warning: local.env file not found"
   fi
-
+  
   # Check if DOCKERHUB_USERNAME is set
   if [ -z "${DOCKERHUB_USERNAME:-}" ]; then
     log "Error: DOCKERHUB_USERNAME environment variable is not set"
@@ -81,22 +80,21 @@ docker_publish() {
     log "Or create a local.env file with: export DOCKERHUB_USERNAME=your-username"
     exit 1
   fi
-
-  log "Tagging existing image for Docker Hub"
-  docker tag snowflake-id-service:latest "${DOCKERHUB_USERNAME}/snowflake-id-service:latest"
-
   
-  log "Pushing image to Docker Hub"
-  docker push "${DOCKERHUB_USERNAME}/snowflake-id-service:latest"
+  log "Logging in to Docker Hub"
+  if [ -n "${DOCKERHUB_PASSWORD:-}" ]; then
+    echo "${DOCKERHUB_PASSWORD}" | docker login -u "${DOCKERHUB_USERNAME}" --password-stdin
+  else
+    docker login -u "${DOCKERHUB_USERNAME}"
+  fi
   
-  log "Docker image published successfully!"
-  log "Image available at: ${DOCKERHUB_USERNAME}/snowflake-id-service:latest"
+  log "Docker login successful!"
   
   echo
 }
 
 main() {
-  docker_publish
+  docker_login
 }
 
 main "$@"
