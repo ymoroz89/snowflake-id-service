@@ -22,7 +22,7 @@ loadtest() {
   
   log "Waiting for snowflake-server to be ready"
   local snowflake_host="localhost"
-  local snowflake_port="9090"
+  local snowflake_port="443"
   
   for i in $(seq 1 90); do
     if (echo > /dev/tcp/${snowflake_host}/${snowflake_port}) >/dev/null 2>&1; then
@@ -42,9 +42,9 @@ loadtest() {
     --simulation com.ymoroz.snowflake.loadtest.SnowflakeGrpcSimulation \
     -Dsnowflake.host=${snowflake_host} \
     -Dsnowflake.port=${snowflake_port} \
-    -Dsnowflake.users=100 \
-    -Dsnowflake.rampSeconds=20 \
-    -Dsnowflake.requestsPerUser=100 \
+    -Dsnowflake.users=1000 \
+    -Dsnowflake.rampSeconds=120 \
+    -Dsnowflake.requestsPerUser=1000 \
     -Dsnowflake.pauseMs=0 \
     -Dsnowflake.callDeadlineMs=1000
   

@@ -14,9 +14,10 @@ repositories {
 
 dependencies {
     gatlingImplementation(project(":snowflake-proto"))
-    gatlingImplementation("io.grpc:grpc-netty-shaded:$grpcVersion")
+    gatlingImplementation("io.grpc:grpc-netty:$grpcVersion")
     gatlingImplementation("io.grpc:grpc-protobuf:$grpcVersion")
     gatlingImplementation("io.grpc:grpc-stub:$grpcVersion")
+    gatlingImplementation("io.netty:netty-tcnative-boringssl-static:2.0.65.Final")
 }
 
 tasks.withType<Test>().configureEach {

@@ -10,3 +10,9 @@
 /*.pid
 /ci-cd/local.env
 /ci-cd/*.log
+/bin/
+/snowflake-proto/bin/
+/snowflake-server/bin/
+/snowflake-client/bin/
+/snowflake-loadtest/bin/
+/certs/

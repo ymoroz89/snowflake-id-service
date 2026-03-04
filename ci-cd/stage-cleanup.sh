@@ -23,40 +23,10 @@ delete_kind_cluster() {
   log "Stage: cleanup"
   log "========================================"
   
-  ensure_cmd kind
   ensure_cmd docker
   
-  # Check if cluster exists
-  local config_file="k8s/kind-config.yaml"
-  local cluster_name
-  cluster_name=$(grep "^name:" "$config_file" | awk '{print $2}')
-
-  if [ -z "$cluster_name" ]; then
-    log "Could not determine cluster name from $config_file"
-    exit 1
-  fi
-
-  if kind get clusters | grep -q "^${cluster_name}$"; then
-    log "Kind cluster '${cluster_name}' exists"
-    
-    # Ask user for confirmation
-    echo
-    echo "Do you want to delete the Kind cluster '${cluster_name}'? (y/N)"
-    read -r response
-    
-    case "$response" in
-      [yY]|[yY][eE][sS])
-        log "Deleting Kind cluster '${cluster_name}'"
-        kind delete cluster --name "$cluster_name"
-        log "Kind cluster '${cluster_name}' deleted successfully"
-        ;;
-      *)
-        log "Skipping cluster deletion as requested"
-        ;;
-    esac
-  else
-    log "Kind cluster '${cluster_name}' does not exist, skipping deletion"
-  fi
+  log "Ensuring Kind cluster exists"
+  ./ci-cd/kind-cluster.sh delete k8s/kind-config.yaml
   
   echo
 }
@@ -135,7 +105,7 @@ delete_docker_images() {
 }
 
 main() {
-  delete_kind_cluster
+  delete_kind_cluster k8s/kind-config.yaml
   delete_docker_images
 }
 
