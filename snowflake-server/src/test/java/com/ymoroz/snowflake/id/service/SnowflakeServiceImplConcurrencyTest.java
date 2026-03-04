@@ -1,7 +1,12 @@
 package com.ymoroz.snowflake.id.service;
 
+import com.ymoroz.snowflake.id.config.SnowflakeProperties;
+import com.ymoroz.snowflake.id.parser.NodeIdParser;
+import com.ymoroz.snowflake.id.parser.NodeIdParserImpl;
+import com.ymoroz.snowflake.id.state.SnowflakeStateServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import static org.mockito.Mockito.mock;
 
 import java.util.Collections;
 import java.util.concurrent.*;
@@ -9,13 +14,17 @@ import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class SnowflakeServiceConcurrencyTest {
+class SnowflakeServiceImplConcurrencyTest {
 
-    private SnowflakeService service;
+    private SnowflakeServiceImpl service;
+    private final SnowflakeStateServiceImpl mockStateService = mock(SnowflakeStateServiceImpl.class);
+    private final NodeIdParser nodeIdParser = new NodeIdParserImpl();
 
     @BeforeEach
     void setUp() {
-        service = new SnowflakeService("snowflake-1", "/tmp/snowflake.state");
+        SnowflakeProperties snowflakeProperties = new SnowflakeProperties();
+        snowflakeProperties.setHostname("snowflake-1");
+        service = new SnowflakeServiceImpl(mockStateService, snowflakeProperties, nodeIdParser);
     }
 
     @Test

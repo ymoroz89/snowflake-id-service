@@ -26,6 +26,7 @@ repositories {
 dependencies {
     implementation(project(":snowflake-proto"))
     implementation("org.springframework.boot:spring-boot-starter:$springBootVersion")
+    implementation("org.springframework.boot:spring-boot-starter-web:$springBootVersion")
     implementation("org.springframework.grpc:spring-grpc-spring-boot-starter:$springGrpcVersion")
     implementation("io.grpc:grpc-services:$grpcVersion")
     compileOnly("org.projectlombok:lombok:$lombokVersion")

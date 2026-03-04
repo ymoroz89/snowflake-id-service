@@ -1,0 +1,20 @@
+# Snowflake ID Service Configuration
+snowflake:
+  # Custom epoch in milliseconds (default: 1420070400000L = 2015-01-01)
+  custom-epoch: 1420070400000
+  
+  # Node ID bits (default: 10, supports up to 1024 nodes)
+  node-id-bits: 10
+  
+  # Sequence bits (default: 12, supports 4096 IDs per millisecond per node)
+  sequence-bits: 12
+  
+  # Time offset buffer in milliseconds (default: 3000ms = 3 seconds)
+  time-offset-buffer-ms: 3000
+  
+  # Hostname for node identification (default: snowflake-0)
+  hostname: ${HOSTNAME:snowflake-0}
+
+# State file configuration
+state:
+  file: /data/snowflake.state
