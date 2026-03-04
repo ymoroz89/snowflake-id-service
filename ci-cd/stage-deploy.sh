@@ -68,7 +68,7 @@ deploy() {
     --set controller.replicaCount=2 \
     --set controller.autoscaling.enabled=true \
     --set controller.autoscaling.minReplicas=2 \
-    --set controller.autoscaling.maxReplicas=5 \
+    --set controller.autoscaling.maxReplicas=10 \
     --set controller.autoscaling.targetCPUUtilizationPercentage=70 \
     --set controller.autoscaling.targetMemoryUtilizationPercentage=80 \
     --wait \

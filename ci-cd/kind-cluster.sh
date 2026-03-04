@@ -84,6 +84,10 @@ install_metrics_server() {
   log "Patching Metrics Server for insecure TLS connections"
   kubectl patch deployment metrics-server -n kube-system --type='json' -p='[{"op": "add", "path": "/spec/template/spec/containers/0/args/-", "value": "--kubelet-insecure-tls"}]'
   
+  # Scale Metrics Server to 3 replicas for high availability
+  log "Scaling Metrics Server to 3 replicas for high availability"
+  kubectl scale deployment metrics-server -n kube-system --replicas=3
+  
   # Verify Metrics Server deployment
   log "Verifying Metrics Server deployment"
   kubectl get deployment metrics-server -n kube-system
@@ -94,7 +98,7 @@ install_metrics_server() {
   # First, wait for the deployment to be available
   kubectl wait --for=condition=available --timeout=400s deployment/metrics-server -n kube-system
   
-  # Verify Metrics Server pod is running and ready
+  # Verify Metrics Server pods are running and ready
   log "Verifying Metrics Server pod status"
   kubectl get pods -n kube-system | grep metrics-server
   
@@ -124,7 +128,7 @@ install_metrics_server() {
     return 1
   fi
   
-  log "Metrics Server installation completed successfully"
+  log "Metrics Server installation completed successfully with 3 replicas"
 }
 
 main() {

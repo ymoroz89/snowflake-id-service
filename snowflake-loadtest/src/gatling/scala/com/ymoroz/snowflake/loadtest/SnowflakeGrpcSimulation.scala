@@ -67,17 +67,17 @@ class SnowflakeGrpcSimulation extends Simulation {
   }
 
   private val scenarioDefinition: ScenarioBuilder =
-    scenario("grpc-generate-id")
-      .repeat(requestsPerUser) {
-        exec { session =>
-          val response = stub
-            .withDeadlineAfter(callDeadlineMs, TimeUnit.MILLISECONDS)
-            .generateId(GenerateIdRequest.newBuilder().build())
-          if (response.getId > 0) session else session.markAsFailed
-        }
-          .exec(dummy("grpc-generate-id", 1))
-          .pause(pauseMs.milliseconds)
+  scenario("grpc-generate-id")
+    .repeat(requestsPerUser) {
+      exec { session =>
+        val response = stub
+          .withDeadlineAfter(callDeadlineMs, TimeUnit.MILLISECONDS)
+          .generateId(GenerateIdRequest.newBuilder().build())
+        if (response != null && response.getId > 0 && response.getId.toString.length > 0) session else session.markAsFailed
       }
+        .exec(dummy("grpc-generate-id", 1))
+        .pause(pauseMs.milliseconds)
+    }
 
   setUp(
     scenarioDefinition.inject(rampUsers(users).during(rampSeconds.seconds))
