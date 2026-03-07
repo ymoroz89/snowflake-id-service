@@ -18,3 +18,20 @@ snowflake:
 # State file configuration
 state:
   file: /data/snowflake.state
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  metrics:
+    tags:
+      application: ${SPRING_APPLICATION_NAME:snowflake-id-service}

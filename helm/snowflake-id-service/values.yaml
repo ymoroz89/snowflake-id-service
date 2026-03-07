@@ -75,7 +75,21 @@ affinity: {}
 app:
   port: 9090
   healthPort: 9091
+  metricsPort: 8080
   name: snowflake-id-service
+
+observability:
+  metricsService:
+    enabled: true
+    port: 8080
+  prometheus:
+    serviceMonitor:
+      enabled: false
+      interval: 15s
+      scrapeTimeout: 10s
+      path: /actuator/prometheus
+      labels:
+        release: kube-prometheus-stack
 
 # Persistence configuration
 persistence:
@@ -101,3 +115,17 @@ readinessProbe:
   periodSeconds: 5
   timeoutSeconds: 5
   failureThreshold: 3
+
+grafana:
+  service:
+    type: NodePort
+    nodePort: 30300
+
+prometheus:
+  service:
+    type: NodePort
+    nodePort: 30091
+
+alertmanager:
+  service:
+    type: ClusterIP

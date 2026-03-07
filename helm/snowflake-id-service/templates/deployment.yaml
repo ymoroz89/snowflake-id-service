@@ -39,11 +39,18 @@ spec:
             - name: health
               containerPort: {{ .Values.app.healthPort }}
               protocol: TCP
+            - name: metrics
+              containerPort: {{ .Values.app.metricsPort }}
+              protocol: TCP
           env:
             - name: SPRING_APPLICATION_NAME
               value: {{ .Values.app.name }}
             - name: GRPC_SERVER_PORT
               value: "{{ .Values.app.port }}"
+            - name: APP_HEALTH_PORT
+              value: "{{ .Values.app.healthPort }}"
+            - name: SERVER_PORT
+              value: "{{ .Values.app.metricsPort }}"
             - name: HOSTNAME
               valueFrom:
                 fieldRef:

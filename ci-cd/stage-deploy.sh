@@ -18,6 +18,25 @@ ensure_cmd() {
   fi
 }
 
+configure_helm_repositories() {
+  log "Configuring Helm repositories"
+  helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx --force-update
+  helm repo add prometheus-community https://prometheus-community.github.io/helm-charts --force-update
+  helm repo update
+}
+
+install_observability_stack() {
+  local grafana_admin_password="${GRAFANA_ADMIN_PASSWORD:-admin}"
+
+  log "Installing kube-prometheus-stack (Prometheus + Grafana)"
+  helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
+    --namespace monitoring \
+    --create-namespace \
+    -f helm/snowflake-id-service/values.yaml \
+    --set grafana.adminPassword="${grafana_admin_password}" \
+    --wait \
+    --timeout 8m
+}
 
 deploy() {
   log "========================================"
@@ -55,6 +74,8 @@ deploy() {
   
   log "Loading Docker image into Kind cluster"
   kind load docker-image snowflake-id-service:latest --name dev-cluster
+
+  configure_helm_repositories
   
   # Install ingress-nginx controller with high availability
   log "Installing ingress-nginx controller with high availability"
@@ -74,14 +95,19 @@ deploy() {
     --wait \
     --timeout 5m
   
+  install_observability_stack
+
   # Deploy application with nginx gRPC ingress
   log "Deploying to Kubernetes with Helm"
   helm upgrade --install snowflake-id-service ./helm/snowflake-id-service \
     --namespace default \
+    --set observability.prometheus.serviceMonitor.enabled=true \
     --wait \
     --timeout 5m
 
   log "Deployment completed"
+  log "Prometheus URL: http://localhost:30091"
+  log "Grafana URL: http://localhost:30300 (admin/${GRAFANA_ADMIN_PASSWORD:-admin})"
   
   echo
 }

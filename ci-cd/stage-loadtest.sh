@@ -43,7 +43,7 @@ loadtest() {
     -Dsnowflake.host=${snowflake_host} \
     -Dsnowflake.port=${snowflake_port} \
     -Dsnowflake.users=1000 \
-    -Dsnowflake.rampSeconds=120 \
+    -Dsnowflake.rampSeconds=300 \
     -Dsnowflake.requestsPerUser=1000 \
     -Dsnowflake.pauseMs=0 \
     -Dsnowflake.callDeadlineMs=1000
