@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Set up logging
-LOG_FILE="/Users/yuriimoroz/Documents/projects/snowflake-id-service/ci-cd/ci-cd.log"
+LOG_FILE="/Users/yuriimoroz/Documents/projects/snowflake-id-service/ci-cd/load-test.log"
 mkdir -p "$(dirname "$LOG_FILE")"
 exec > >(tee -a "$LOG_FILE")
 exec 2>&1

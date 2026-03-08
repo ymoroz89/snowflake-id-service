@@ -25,14 +25,12 @@ public class SnowflakeGrpcService extends SnowflakeServiceGrpc.SnowflakeServiceI
 
     @Override
     public void generateId(GenerateIdRequest request, StreamObserver<GenerateIdResponse> responseObserver) {
-        idGenerationLatency.record(() -> {
-            long id = snowflakeService.nextId();
-            generatedIdsCounter.increment();
-            GenerateIdResponse response = GenerateIdResponse.newBuilder()
-                    .setId(id)
-                    .build();
-            responseObserver.onNext(response);
-            responseObserver.onCompleted();
-        });
+        long id = idGenerationLatency.record(() -> snowflakeService.nextId());
+        generatedIdsCounter.increment();
+        GenerateIdResponse response = GenerateIdResponse.newBuilder()
+                .setId(id)
+                .build();
+        responseObserver.onNext(response);
+        responseObserver.onCompleted();
     }
 }

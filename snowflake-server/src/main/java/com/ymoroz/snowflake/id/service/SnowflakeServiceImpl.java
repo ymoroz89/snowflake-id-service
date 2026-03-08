@@ -11,6 +11,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -43,7 +44,7 @@ public class SnowflakeServiceImpl implements SnowflakeService {
 
     private long lastTimestamp = -1L;
     private long sequence = 0L;
-    private long lastSavedTimestamp = -1L;
+    private final AtomicLong lastSavedTimestamp = new AtomicLong(-1L);
 
     public SnowflakeServiceImpl(final SnowflakeStateService stateService,
                                 final SnowflakeProperties snowflakeProperties,
@@ -71,8 +72,9 @@ public class SnowflakeServiceImpl implements SnowflakeService {
     @PostConstruct
     public void init() {
         long currentTime = System.currentTimeMillis() - snowflakeProperties.getCustomEpoch();
-        lastSavedTimestamp = stateService.loadState(currentTime);
-        lastTimestamp = Math.max(lastTimestamp, lastSavedTimestamp);
+        long loadedState = stateService.loadState(currentTime);
+        lastSavedTimestamp.set(loadedState);
+        lastTimestamp = Math.max(lastTimestamp, loadedState);
     }
 
     @PreDestroy
@@ -112,8 +114,12 @@ public class SnowflakeServiceImpl implements SnowflakeService {
     private void validateTimestamp(long currentTimestamp) {
         // Ensure we don't generate IDs ahead of our reserved time window
         // This is a safety check, though loadState handles the initial catch-up
-        if (currentTimestamp > lastSavedTimestamp) {
-            saveStateLocked();
+        if (currentTimestamp > lastSavedTimestamp.get()) {
+            // If we drifted past our reservation (e.g. scheduler stalled), save immediately
+            // We still need to lock here or just call the non-locking saveState
+            // But since this is a critical path fallback, calling saveState() is fine.
+            // However, saveState() is now non-locking, so it's safe.
+            saveState();
         }
     }
 
@@ -122,12 +128,6 @@ public class SnowflakeServiceImpl implements SnowflakeService {
             log.error("Invalid System Clock! Current: {}, Last: {}", currentTimestamp, lastTimestamp);
             throw new IllegalStateException("Invalid System Clock!");
         }
-    }
-
-    private void saveStateLocked() {
-        long saveTime = currentTimestamp() + timeOffsetBufferMs;
-        stateService.saveState(saveTime);
-        lastSavedTimestamp = saveTime;
     }
 
     private long currentTimestamp() {
@@ -150,11 +150,10 @@ public class SnowflakeServiceImpl implements SnowflakeService {
 
     @Scheduled(fixedRate = 1000) // Run every 1 second
     private void saveState() {
-        lock.lock();
-        try {
-            saveStateLocked();
-        } finally {
-            lock.unlock();
-        }
+        // No lock needed here as we are just updating the atomic long and saving to disk
+        // The nextId method only reads the atomic long
+        long saveTime = currentTimestamp() + timeOffsetBufferMs;
+        stateService.saveState(saveTime);
+        lastSavedTimestamp.set(saveTime);
     }
 }

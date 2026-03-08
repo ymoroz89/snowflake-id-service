@@ -115,17 +115,3 @@ readinessProbe:
   periodSeconds: 5
   timeoutSeconds: 5
   failureThreshold: 3
-
-grafana:
-  service:
-    type: NodePort
-    nodePort: 30300
-
-prometheus:
-  service:
-    type: NodePort
-    nodePort: 30091
-
-alertmanager:
-  service:
-    type: ClusterIP

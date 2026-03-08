@@ -32,7 +32,7 @@ install_observability_stack() {
   helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
     --namespace monitoring \
     --create-namespace \
-    -f helm/snowflake-id-service/values.yaml \
+    -f kube-prometheus-stack/values.yaml \
     --set grafana.adminPassword="${grafana_admin_password}" \
     --wait \
     --timeout 8m
