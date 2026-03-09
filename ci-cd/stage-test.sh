@@ -8,7 +8,7 @@ exec > >(tee -a "$LOG_FILE")
 exec 2>&1
 
 log() {
-  printf '[test] %s\n' "$*"
+  printf '[stage][test] %s\n' "$*"
 }
 
 test() {

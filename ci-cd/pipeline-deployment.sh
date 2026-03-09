@@ -18,49 +18,10 @@ ensure_cmd() {
   fi
 }
 
-configure_helm_repositories() {
-  log "Configuring Helm repositories"
-  helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx --force-update
-  helm repo add prometheus-community https://prometheus-community.github.io/helm-charts --force-update
-  helm repo update
-}
-
-install_observability_stack() {
-  local grafana_admin_password="${GRAFANA_ADMIN_PASSWORD:-admin}"
-
-  log "Installing kube-prometheus-stack (Prometheus + Grafana)"
-  helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
-    --namespace monitoring \
-    --create-namespace \
-    -f helm/kube-prometheus-stack/values.yaml \
-    --set grafana.adminPassword="${grafana_admin_password}" \
-    --wait \
-    --timeout 8m
-}
-
 deploy() {
   log "========================================"
   log "Stage: deploy"
   log "========================================"
-  
-  ensure_cmd helm
-  ensure_cmd docker
-  ensure_cmd kubectl
-  
-  log "Ensuring Kind cluster exists"
-  ./ci-cd/kind-cluster.sh create k8s/kind-config.yaml
-  
-  # Load environment variables from local.env
-  if [ -f "./ci-cd/local.env" ]; then
-    log "Loading environment variables from local.env"
-    source ./ci-cd/local.env
-  else
-    log "Warning: local.env file not found"
-  fi
-  
-  # Create TLS secret for ingress
-  log "Creating TLS secret for ingress"
-  ./ci-cd/create-tls-secret.sh
   
   # Check if image exists locally, if not pull it
   if ! docker image inspect snowflake-id-service:latest >/dev/null 2>&1; then
@@ -74,19 +35,6 @@ deploy() {
   
   log "Loading Docker image into Kind cluster"
   kind load docker-image snowflake-id-service:latest --name dev-cluster
-
-  configure_helm_repositories
-  
-  # Install ingress-nginx controller using the values file
-  log "Installing ingress-nginx controller"
-  helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
-    --namespace ingress-nginx \
-    --create-namespace \
-    -f helm/ingress-nginx/values.yaml \
-    --wait \
-    --timeout 5m
-  
-  install_observability_stack
 
   # Deploy application with nginx gRPC ingress
   log "Deploying to Kubernetes with Helm"
@@ -104,7 +52,14 @@ deploy() {
 }
 
 main() {
+    log "========================================"
+    log "Starting local deployment pipeline"
+    log "========================================"
+    echo
   deploy
+    log "========================================"
+    log "All stages completed successfully!"
+    log "========================================"
 }
 
 main "$@"
