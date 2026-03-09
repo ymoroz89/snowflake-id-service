@@ -56,12 +56,12 @@ resources:
     memory: 512Mi
   requests:
     cpu: 250m
-    memory: 256Mi
+    memory: 320Mi
 
 autoscaling:
   enabled: true
   minReplicas: 3
-  maxReplicas: 30
+  maxReplicas: 13
   targetCPUUtilizationPercentage: 70
   targetMemoryUtilizationPercentage: 80
 
@@ -75,7 +75,21 @@ affinity: {}
 app:
   port: 9090
   healthPort: 9091
+  metricsPort: 8080
   name: snowflake-id-service
+
+observability:
+  metricsService:
+    enabled: true
+    port: 8080
+  prometheus:
+    serviceMonitor:
+      enabled: true
+      interval: 15s
+      scrapeTimeout: 10s
+      path: /actuator/prometheus
+      labels:
+        release: kube-prometheus-stack
 
 # Persistence configuration
 persistence:
@@ -97,7 +111,7 @@ livenessProbe:
 readinessProbe:
   grpc:
     port: 9091
-  initialDelaySeconds: 5
-  periodSeconds: 5
+  initialDelaySeconds: 30
+  periodSeconds: 10
   timeoutSeconds: 5
   failureThreshold: 3

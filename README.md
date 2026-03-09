@@ -143,7 +143,7 @@ The project includes a comprehensive local CI/CD pipeline in the `ci-cd/` direct
 Run the complete pipeline:
 
 ```bash
-./ci-cd/run-local-ci.sh
+./ci-cd/local-pipeline.sh
 ```
 
 #### Stage-by-Stage Execution
@@ -175,11 +175,12 @@ Run individual stages:
 
 ### Configuration
 
-The pipeline uses `ci-cd/local.env` for Docker Hub credentials:
+The pipeline uses `ci-cd/local.env` for Docker Hub credentials and optional Grafana password:
 
 ```bash
 export DOCKERHUB_USERNAME=your-username
 export DOCKERHUB_PASSWORD=your-password
+export GRAFANA_ADMIN_PASSWORD=change-me
 ```
 
 ### Key Features
@@ -223,6 +224,16 @@ helm install snowflake-id-service ./helm/snowflake-id-service
 ```
 
 Customize deployment via `helm/snowflake-id-service/values.yaml`.
+
+## Observability
+
+The service exposes Prometheus metrics on `http://<pod-ip>:8080/actuator/prometheus`.
+
+When running `./ci-cd/stage-deploy.sh`, the pipeline installs `kube-prometheus-stack` in the `monitoring` namespace and enables app scraping via `ServiceMonitor`.
+
+- Grafana URL: `http://localhost:30300` (user `admin`, password from `GRAFANA_ADMIN_PASSWORD` or `admin`)
+- Prometheus URL: `http://localhost:30091`
+- Stack values file: `k8s/observability/kube-prometheus-stack-values.yaml`
 
 ## Notes
 

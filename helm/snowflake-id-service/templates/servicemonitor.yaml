@@ -1,0 +1,24 @@
+{{- if and .Values.observability.prometheus.serviceMonitor.enabled (.Capabilities.APIVersions.Has "monitoring.coreos.com/v1/ServiceMonitor") }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "snowflake-id-service.fullname" . }}
+  labels:
+    {{- include "snowflake-id-service.labels" . | nindent 4 }}
+    {{- with .Values.observability.prometheus.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "snowflake-id-service.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: metrics
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  endpoints:
+    - port: metrics
+      path: {{ .Values.observability.prometheus.serviceMonitor.path }}
+      interval: {{ .Values.observability.prometheus.serviceMonitor.interval }}
+      scrapeTimeout: {{ .Values.observability.prometheus.serviceMonitor.scrapeTimeout }}
+{{- end }}

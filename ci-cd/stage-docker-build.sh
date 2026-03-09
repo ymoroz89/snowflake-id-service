@@ -8,7 +8,7 @@ exec > >(tee -a "$LOG_FILE")
 exec 2>&1
 
 log() {
-  printf '[docker-build] %s\n' "$*"
+  printf '[stage][docker-build] %s\n' "$*"
 }
 
 ensure_cmd() {

@@ -8,12 +8,12 @@ exec > >(tee -a "$LOG_FILE")
 exec 2>&1
 
 log() {
-  printf '[local-ci] %s\n' "$*"
+  printf '[pipeline][build] %s\n' "$*"
 }
 
 main() {
   log "========================================"
-  log "Starting local ci-cd pipeline"
+  log "Starting local build pipeline"
   log "========================================"
   echo
 
@@ -31,19 +31,6 @@ main() {
 
   log "Running docker-publish stage"
   ./ci-cd/stage-docker-publish.sh
-  echo
-
-  log "Running deploy stage"
-  ./ci-cd/stage-deploy.sh
-  echo
-
-  log "Running loadtest stage"
-  ./ci-cd/stage-loadtest.sh
-  echo
-
-  # Add cluster cleanup at the end
-  log "Running cleanup stage"
-  ./ci-cd/stage-cleanup.sh
   echo
 
   log "========================================"

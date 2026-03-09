@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Set up logging
-LOG_FILE="/Users/yuriimoroz/Documents/projects/snowflake-id-service/ci-cd/ci-cd.log"
+# Determine the project root based on the script's location
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+PROJECT_ROOT=$(dirname "$SCRIPT_DIR")
+
+# Set up logging relative to the project root
+LOG_FILE="$PROJECT_ROOT/ci-cd/ci-cd.log"
 mkdir -p "$(dirname "$LOG_FILE")"
 exec > >(tee -a "$LOG_FILE")
 exec 2>&1
 
 log() {
-  printf '[docker-publish] %s\n' "$*"
+  printf '[stage][docker-publish] %s\n' "$*"
 }
 
 ensure_cmd() {
@@ -66,12 +70,12 @@ docker_publish() {
   start_docker_if_needed
 
   log "Logging in to Docker Hub"
-  ./ci-cd/docker-login.sh
+  "$SCRIPT_DIR/docker-login.sh"
 
-  # Load environment variables from local.env if not already loaded
-  if [ -f "./ci-cd/local.env" ]; then
-    log "Loading environment variables from local.env"
-    source ./ci-cd/local.env
+  # Load environment variables from local.env at the project root
+  if [ -f "$PROJECT_ROOT/local.env" ]; then
+    log "Loading environment variables from $PROJECT_ROOT/local.env"
+    source "$PROJECT_ROOT/local.env"
   fi
 
   # Check if DOCKERHUB_USERNAME is set

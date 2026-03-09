@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Set up logging
-LOG_FILE="/Users/yuriimoroz/Documents/projects/snowflake-id-service/ci-cd/ci-cd.log"
+# Determine the project root based on the script's location
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+PROJECT_ROOT="$SCRIPT_DIR"
+
+# Set up logging relative to the project root
+LOG_FILE="$PROJECT_ROOT/ci-cd/ci-cd.log"
 mkdir -p "$(dirname "$LOG_FILE")"
 exec > >(tee -a "$LOG_FILE")
 exec 2>&1
@@ -26,7 +30,7 @@ delete_kind_cluster() {
   ensure_cmd docker
   
   log "Ensuring Kind cluster exists"
-  ./ci-cd/kind-cluster.sh delete k8s/kind-config.yaml
+  "$PROJECT_ROOT/infra/kind-cluster.sh" delete
   
   echo
 }
@@ -100,13 +104,88 @@ delete_docker_images() {
   else
     log "Nothing to delete, skipped"
   fi
+
+  echo
+}
+
+delete_certs_directory() {
+  log "========================================"
+  log "Stage: cleanup - Certificates"
+  log "========================================"
+
+  local certs_dir="$PROJECT_ROOT/certs"
+
+  if [ -d "$certs_dir" ]; then
+    log "Found certificates directory at: $certs_dir"
+    echo "Do you want to delete this directory? (y/N)"
+    read -r response
+
+    case "$response" in
+      [yY]|[yY][eE][sS])
+        log "Deleting certificates directory"
+        rm -rf "$certs_dir"
+        log "Successfully deleted certificates directory"
+        ;;
+      *)
+        log "Skipping certificates directory deletion as requested"
+        ;;
+    esac
+  else
+    log "Certificates directory not found, skipping"
+  fi
+
+  echo
+}
+
+delete_logs() {
+  log "========================================"
+  log "Stage: cleanup - Logs"
+  log "========================================"
+
+  local log_files=("$PROJECT_ROOT/ci-cd/ci-cd.log" "$PROJECT_ROOT/infra/infra.log")
+  local found_logs=()
+
+  for file in "${log_files[@]}"; do
+    if [ -f "$file" ]; then
+      found_logs+=("$file")
+    fi
+  done
+
+  if [ ${#found_logs[@]} -gt 0 ]; then
+    log "Found log files to clean up:"
+    for file in "${found_logs[@]}"; do
+      log "  - $file"
+    done
+
+    echo
+    echo "Do you want to delete these log files? (y/N)"
+    read -r response
+
+    case "$response" in
+      [yY]|[yY][eE][sS])
+        log "Deleting log files"
+        for file in "${found_logs[@]}"; do
+          rm -f "$file"
+          log "Successfully deleted log file: $file"
+        done
+        log "Log file cleanup completed"
+        ;;
+      *)
+        log "Skipping log file deletion as requested"
+        ;;
+    esac
+  else
+    log "No log files found to delete, skipping"
+  fi
   
   echo
 }
 
 main() {
-  delete_kind_cluster k8s/kind-config.yaml
+  delete_kind_cluster
   delete_docker_images
+  delete_certs_directory
+  delete_logs
 }
 
 main "$@"

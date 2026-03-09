@@ -1,0 +1,22 @@
+controller:
+  service:
+    type: NodePort
+    nodePorts:
+      https: 30443
+  ingressClassResource:
+    name: nginx
+    enabled: true
+    default: false
+    controllerValue: "k8s.io/ingress-nginx"
+  ingressClass: nginx
+  replicaCount: 2
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 13
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  resources:
+    requests:
+      cpu: 120m
+      memory: 128Mi

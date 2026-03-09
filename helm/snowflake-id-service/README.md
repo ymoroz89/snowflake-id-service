@@ -84,6 +84,26 @@ The following table lists the configurable parameters and their default values:
 | `autoscaling.maxReplicas` | Maximum replicas | `100` |
 | `autoscaling.targetCPUUtilizationPercentage` | Target CPU utilization | `70` |
 | `autoscaling.targetMemoryUtilizationPercentage` | Target memory utilization | `80` |
+| `app.metricsPort` | HTTP metrics port exposed by Spring Boot Actuator | `8080` |
+| `observability.metricsService.enabled` | Create dedicated ClusterIP service for metrics | `true` |
+| `observability.metricsService.port` | Metrics service port | `8080` |
+| `observability.prometheus.serviceMonitor.enabled` | Create ServiceMonitor resource | `false` |
+| `observability.prometheus.serviceMonitor.path` | Prometheus scrape path | `/actuator/prometheus` |
+| `observability.prometheus.serviceMonitor.interval` | Prometheus scrape interval | `15s` |
+| `observability.prometheus.serviceMonitor.labels.release` | Label used by kube-prometheus-stack selector | `kube-prometheus-stack` |
+
+## Observability
+
+The application publishes metrics at:
+
+- `http://<pod-ip>:8080/actuator/prometheus`
+
+Enable Prometheus Operator scraping:
+
+```bash
+helm upgrade --install my-snowflake-service ./helm/snowflake-id-service \
+  --set observability.prometheus.serviceMonitor.enabled=true
+```
 
 ## Network Configuration Details
 
