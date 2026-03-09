@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Set up logging
-LOG_FILE="/Users/yuriimoroz/Documents/projects/snowflake-id-service/ci-cd/ci-cd.log"
+LOG_FILE="/Users/yuriimoroz/Documents/projects/snowflake-id-service/infra/infra.log"
 mkdir -p "$(dirname "$LOG_FILE")"
 exec > >(tee -a "$LOG_FILE")
 exec 2>&1
@@ -19,7 +19,7 @@ ensure_cmd() {
 }
 
 ensure_kind_cluster() {
-  local config_file="${1:-k8s/kind-config.yaml}"
+  local config_file="${1:-infra/kind/kind-config.yaml}"
   local cluster_name
   cluster_name=$(grep "^name:" "$config_file" | awk '{print $2}')
 
@@ -41,7 +41,7 @@ ensure_kind_cluster() {
 }
 
 delete_kind_cluster() {
-  local config_file="${1:-k8s/kind-config.yaml}"
+  local config_file="${1:-infra/kind/kind-config.yaml}"
   local cluster_name
   cluster_name=$(grep "^name:" "$config_file" | awk '{print $2}')
 
@@ -136,16 +136,16 @@ main() {
     "create")
       ensure_cmd kind
       ensure_cmd kubectl
-      ensure_kind_cluster "${2:-k8s/kind-config.yaml}"
+      ensure_kind_cluster "${2:-infra/kind/kind-config.yaml}"
       ;;
     "delete")
       ensure_cmd kind
-      delete_kind_cluster "${2:-k8s/kind-config.yaml}"
+      delete_kind_cluster "${2:-infra/kind/kind-config.yaml}"
       ;;
     *)
       echo "Usage: $0 {create|delete} [config_file]"
-      echo "  create [config_file]  - Create kind cluster from config file (default: k8s/kind-config.yaml)"
-      echo "  delete [config_file]  - Delete kind cluster from config file (default: k8s/kind-config.yaml)"
+      echo "  create [config_file]  - Create kind cluster from config file (default: infra/kind/kind-config.yaml)"
+      echo "  delete [config_file]  - Delete kind cluster from config file (default: infra/kind/kind-config.yaml)"
       exit 1
       ;;
   esac
