@@ -52,11 +52,11 @@ loadtest() {
     -Dsnowflake.host=${snowflake_host} \
     -Dsnowflake.port=${snowflake_port} \
     -Dsnowflake.users=1000 \
-    -Dsnowflake.rampSeconds=300 \
-    -Dsnowflake.requestsPerUser=500 \
+    -Dsnowflake.rampSeconds=100 \
+    -Dsnowflake.requestsPerUser=1000 \
     -Dsnowflake.pauseMs=0 \
     -Dsnowflake.callDeadlineMs=1000 \
-    -PgatlingJvmArgs="-Xmx2G -Djavax.net.ssl.trustStore=$PROJECT_ROOT/certs/tls.crt"
+    -PgatlingJvmArgs="-Xms1g -Xmx3g"
 
   log "Load test finished."
   echo

@@ -12,11 +12,11 @@ controller:
   replicaCount: 2
   autoscaling:
     enabled: true
-    minReplicas: 2
-    maxReplicas: 10
+    minReplicas: 3
+    maxReplicas: 13
     targetCPUUtilizationPercentage: 70
     targetMemoryUtilizationPercentage: 80
   resources:
     requests:
-      cpu: 100m
+      cpu: 120m
       memory: 128Mi

@@ -151,7 +151,7 @@ public class SnowflakeServiceImpl implements SnowflakeService {
     @Scheduled(fixedRate = 1000) // Run every 1 second
     private void saveState() {
         // No lock needed here as we are just updating the atomic long and saving to disk
-        // The nextId method only reads the atomic long
+        // The validateTimestamp method only reads the atomic long
         long saveTime = currentTimestamp() + timeOffsetBufferMs;
         stateService.saveState(saveTime);
         lastSavedTimestamp.set(saveTime);
