@@ -32,7 +32,7 @@ install_observability_stack() {
   helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
     --namespace monitoring \
     --create-namespace \
-    -f kube-prometheus-stack/values.yaml \
+    -f helm/kube-prometheus-stack/values.yaml \
     --set grafana.adminPassword="${grafana_admin_password}" \
     --wait \
     --timeout 8m
@@ -77,21 +77,12 @@ deploy() {
 
   configure_helm_repositories
   
-  # Install ingress-nginx controller with high availability
-  log "Installing ingress-nginx controller with high availability"
+  # Install ingress-nginx controller using the values file
+  log "Installing ingress-nginx controller"
   helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
     --namespace ingress-nginx \
     --create-namespace \
-    --set controller.service.type=NodePort \
-    --set controller.service.nodePorts.https=30443 \
-    --set controller.ingressClassResource.name=nginx \
-    --set controller.ingressClass=nginx \
-    --set controller.replicaCount=2 \
-    --set controller.autoscaling.enabled=true \
-    --set controller.autoscaling.minReplicas=2 \
-    --set controller.autoscaling.maxReplicas=10 \
-    --set controller.autoscaling.targetCPUUtilizationPercentage=70 \
-    --set controller.autoscaling.targetMemoryUtilizationPercentage=80 \
+    -f helm/ingress-nginx/values.yaml \
     --wait \
     --timeout 5m
   

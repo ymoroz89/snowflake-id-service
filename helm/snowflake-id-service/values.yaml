@@ -56,7 +56,7 @@ resources:
     memory: 512Mi
   requests:
     cpu: 250m
-    memory: 256Mi
+    memory: 320Mi
 
 autoscaling:
   enabled: true
@@ -84,7 +84,7 @@ observability:
     port: 8080
   prometheus:
     serviceMonitor:
-      enabled: false
+      enabled: true
       interval: 15s
       scrapeTimeout: 10s
       path: /actuator/prometheus
@@ -111,7 +111,7 @@ livenessProbe:
 readinessProbe:
   grpc:
     port: 9091
-  initialDelaySeconds: 5
-  periodSeconds: 5
+  initialDelaySeconds: 30
+  periodSeconds: 10
   timeoutSeconds: 5
   failureThreshold: 3
