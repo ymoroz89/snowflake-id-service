@@ -87,6 +87,54 @@ Manages state persistence to ensure ID uniqueness across service restarts.
 - Protocol buffer definitions in `snowflake-proto` package
 - Supports distributed access across services
 
+#### Unary RPC Stream Lifecycle
+The `generateId` method implements a Unary RPC pattern with the following lifecycle:
+
+**Stream Flow**:
+1. **Client Request**: Client sends `GenerateIdRequest` (empty message)
+2. **Server Processing**: 
+   - Calls `snowflakeService.nextId()` to generate unique ID
+   - Records timing metrics using Micrometer
+   - Increments generation counter
+3. **Response Building**: Creates `GenerateIdResponse` with the generated ID
+4. **Response Transmission**: Sends response via `responseObserver.onNext(response)`
+5. **Stream Closure**: Signals completion with `responseObserver.onCompleted()`
+
+**Stream Behavior**:
+- **Single Use**: Each Unary RPC call creates a new stream used exactly once
+- **Automatic Cleanup**: Stream is automatically closed after `onCompleted()` is called
+- **Resource Efficient**: No persistent connection maintained after response
+- **HTTP/2 Multiplexing**: Multiple Unary RPC calls can share the same underlying TCP connection
+
+**Client-Side Handling**:
+```java
+stub.generateId(request, new StreamObserver<GenerateIdResponse>() {
+    @Override
+    public void onNext(GenerateIdResponse response) {
+        // Called when response arrives
+        System.out.println("Received ID: " + response.getId());
+    }
+    
+    @Override
+    public void onError(Throwable t) {
+        // Called if an error occurs (stream closes automatically)
+        System.err.println("Error: " + t.getMessage());
+    }
+    
+    @Override
+    public void onCompleted() {
+        // Called when stream is closed by server
+        System.out.println("Stream completed - connection closed");
+    }
+});
+```
+
+**Key Characteristics**:
+- **Request-Response Pattern**: One request → One response → Stream closed
+- **Stateless**: Each call is independent with no persistent connection
+- **Type Safety**: Protocol Buffers provide compile-time type checking
+- **Performance**: Binary protocol with HTTP/2 foundation for optimal performance
+
 #### Kubernetes Integration
 - **Hostname-based Node ID**: Extracts ordinal from pod hostname (e.g., `snowflake-1` → node ID 1)
 - **State File Path**: Controlled by `state.file` property (default `/data/snowflake.state` in this project).

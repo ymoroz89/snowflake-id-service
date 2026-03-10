@@ -52,4 +52,12 @@ tasks.test {
 
 tasks.named<JacocoReport>("jacocoTestReport") {
     dependsOn(tasks.test)
+    
+    classDirectories.setFrom(
+        classDirectories.files.map {
+            fileTree(it).matching {
+                exclude("com/ymoroz/snowflake/id/SnowflakeIdServiceApplication.class")
+            }
+        }
+    )
 }
