@@ -103,7 +103,7 @@ The `generateId` method implements a Unary RPC pattern with the following lifecy
 **Stream Behavior**:
 - **Single Use**: Each Unary RPC call creates a new stream used exactly once
 - **Automatic Cleanup**: Stream is automatically closed after `onCompleted()` is called
-- **Resource Efficient**: No persistent connection maintained after response
+- **Resource Efficient**: Per-call stream resources are released after response completion
 - **HTTP/2 Multiplexing**: Multiple Unary RPC calls can share the same underlying TCP connection
 
 **Client-Side Handling**:
@@ -124,14 +124,14 @@ stub.generateId(request, new StreamObserver<GenerateIdResponse>() {
     @Override
     public void onCompleted() {
         // Called when stream is closed by server
-        System.out.println("Stream completed - connection closed");
+        System.out.println("Stream completed");
     }
 });
 ```
 
 **Key Characteristics**:
 - **Request-Response Pattern**: One request → One response → Stream closed
-- **Stateless**: Each call is independent with no persistent connection
+- **Stateless RPC Semantics**: Each call is independent even when the channel is reused
 - **Type Safety**: Protocol Buffers provide compile-time type checking
 - **Performance**: Binary protocol with HTTP/2 foundation for optimal performance
 

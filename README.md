@@ -74,6 +74,8 @@ snowflake:
   client:
     host: localhost
     port: 9090
+    keepAliveTime: 30
+    keepAliveTimeout: 5
 ```
 
 Notes:
@@ -105,6 +107,8 @@ Client (`snowflake-client`):
 
 - `snowflake.client.host` (default `localhost`)
 - `snowflake.client.port` (default `9090`)
+- `snowflake.client.keepAliveTime` (default `30` seconds)
+- `snowflake.client.keepAliveTimeout` (default `5` seconds)
 
 ## Build and Test
 
@@ -138,8 +142,15 @@ Example overrides:
   -Dsnowflake.useTls=true \
   -Dsnowflake.users=1000 \
   -Dsnowflake.rampSeconds=100 \
-  -Dsnowflake.requestsPerUser=1000
+  -Dsnowflake.requestsPerUser=1000 \
+  -Dsnowflake.keepAliveTime=30 \
+  -Dsnowflake.keepAliveTimeout=5
 ```
+
+Load-test networking options:
+
+- `snowflake.keepAliveTime` (default `30` seconds)
+- `snowflake.keepAliveTimeout` (default `5` seconds)
 
 ## Local Pipeline (Kind + Helm)
 
