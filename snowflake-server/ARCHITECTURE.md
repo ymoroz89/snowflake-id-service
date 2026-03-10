@@ -6,7 +6,7 @@ Module overview: [README.md](README.md)
 
 ## System Design Overview
 
-This package implements a distributed ID generation service based on Twitter's Snowflake algorithm, designed for high-performance, globally unique ID generation in distributed systems.
+This package implements a distributed ID generation service based on [Twitter's Snowflake algorithm](https://en.wikipedia.org/wiki/Snowflake_ID), designed for high-performance, globally unique ID generation in distributed systems.
 
 ## Architecture
 
