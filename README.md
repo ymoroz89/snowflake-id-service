@@ -1,84 +1,64 @@
 # snowflake-id-service
 
-Distributed ID generation service based on the Snowflake algorithm, exposed via gRPC and packaged as a multi-module Gradle project.
+Distributed 64-bit ID generation service based on the Snowflake algorithm, exposed via gRPC.
 
-## What This Project Provides
+## Why This Project
 
-- A gRPC server that generates 64-bit unique IDs.
-- Shared protobuf contracts for server and clients.
-- A reusable Java client library with Spring Boot auto-configuration.
-- Container and Helm artifacts for deployment.
+This repository provides a production-oriented Snowflake setup with:
 
-## Project Modules
+- A gRPC server for high-throughput unique ID generation.
+- Shared protobuf contracts for cross-module compatibility.
+- A reusable Java client with Spring Boot auto-configuration.
+- Docker and Helm assets for local Kubernetes deployment.
+- Gatling load tests for throughput and latency validation.
 
-- `snowflake-server`
-  - Spring Boot gRPC service implementation.
-  - Contains the Snowflake generation logic and gRPC endpoint implementation.
-  - Entry point: `SnowflakeIdServiceApplication`.
+## Repository Structure
 
-- `snowflake-client`
-  - Java client library for calling the gRPC service.
-  - Includes `SnowflakeClient` for manual use and Spring Boot auto-configuration.
-  - Useful for integrating ID generation into other JVM services.
+| Path | Purpose |
+| --- | --- |
+| `snowflake-server` | Spring Boot + gRPC server with Snowflake ID generation logic. [Module README](snowflake-server/README.md), [Architecture](snowflake-server/ARCHITECTURE.md) |
+| `snowflake-client` | Java gRPC client library (`SnowflakeClient`) + Spring Boot auto-config |
+| `snowflake-proto` | Protobuf/gRPC API contract and generated stubs |
+| `snowflake-loadtest` | Gatling load-testing module for gRPC traffic |
+| `helm/snowflake-id-service` | Helm chart for app deployment. [Chart README](helm/snowflake-id-service/README.md) |
+| `infra` | Kind cluster and local infrastructure setup scripts |
+| `ci-cd` | Build/test/image/deploy/load-test pipeline scripts |
 
-- `snowflake-proto`
-  - Source of truth for API contracts (`.proto` files).
-  - Generates gRPC stubs and protobuf classes used by both client and server.
+## Module Documentation
 
-- `snowflake-loadtest`
-  - Gatling-based load testing module for gRPC ID generation throughput checks.
-  - Contains parameterized simulations for local or environment testing.
+- Server module README: [snowflake-server/README.md](snowflake-server/README.md)
+- Server architecture: [snowflake-server/ARCHITECTURE.md](snowflake-server/ARCHITECTURE.md)
 
-- `helm/snowflake-id-service`
-  - Helm chart for Kubernetes deployment.
-  - Includes configurable values for image, replicas, probes, resources, and ingress.
+## Prerequisites
 
-- `Dockerfile`
-  - Container image definition for packaging the server module.
+For local development:
 
-## Module Versioning
+- Java 21
+- Docker
 
-Module versions are managed independently in `gradle.properties`:
+For local Kubernetes pipeline:
 
-- `snowflakeProtoVersion`
-- `snowflakeClientVersion`
-- `snowflakeServerVersion`
-- `snowflakeLoadtestVersion`
+- Kind
+- kubectl
+- Helm 3
 
-Update these values when releasing each module.
+## Quick Start (Local gRPC Server)
 
-## Tech Stack
-
-- Java 21, Scala (Gatling load tests)
-- Spring Boot 4.0.2 + Spring gRPC
-- gRPC + Protocol Buffers
-- Gradle (multi-module)
-- Lombok
-- PMD (static analysis), JaCoCo (code coverage)
-- Docker (distroless non-root image)
-- Helm
-
-## Build
-
-Build all modules:
+1. Build all modules:
 
 ```bash
 ./gradlew clean build
 ```
 
-## Run Locally
-
-Start the gRPC server:
+2. Start the server locally:
 
 ```bash
+SNOWFLAKE_HOSTNAME=snowflake-0 \
+STATE_FILE=/tmp/snowflake.state \
 ./gradlew :snowflake-server:bootRun
 ```
 
-Default gRPC port: `9090`
-
-## Client Usage
-
-### With `SnowflakeClient`
+3. Use the Java client:
 
 ```java
 try (SnowflakeClient client = new SnowflakeClient("localhost", 9090)) {
@@ -87,9 +67,7 @@ try (SnowflakeClient client = new SnowflakeClient("localhost", 9090)) {
 }
 ```
 
-### With Spring Boot Auto-Configuration
-
-`application.yaml`:
+Spring Boot auto-configuration (`snowflake-client`):
 
 ```yaml
 snowflake:
@@ -98,110 +76,117 @@ snowflake:
     port: 9090
 ```
 
-Then inject `SnowflakeClient` in your service.
+Notes:
+
+- `SNOWFLAKE_HOSTNAME` should end with `-<number>` (for example `snowflake-0`) because node ID is parsed from the hostname suffix.
+- `STATE_FILE` is set to a writable local path for development.
+
+## API Contract
+
+Protocol definition: `snowflake-proto/src/main/proto/snowflake.proto`
+
+Service:
+
+- `SnowflakeService.GenerateId(GenerateIdRequest) -> GenerateIdResponse`
+
+## Configuration
+
+Server (`snowflake-server/src/main/resources/application.yaml`):
+
+- `snowflake.custom-epoch`
+- `snowflake.node-id-bits`
+- `snowflake.sequence-bits`
+- `snowflake.time-offset-buffer-ms`
+- `snowflake.hostname`
+- `state.file`
+- `app.health.port`
+
+Client (`snowflake-client`):
+
+- `snowflake.client.host` (default `localhost`)
+- `snowflake.client.port` (default `9090`)
+
+## Build and Test
+
+Run full build:
+
+```bash
+./gradlew clean build
+```
+
+Run tests only:
+
+```bash
+./gradlew test
+```
 
 ## Load Testing (Gatling)
 
-Run the default simulation:
+Default run:
 
 ```bash
 ./gradlew :snowflake-loadtest:gatlingRun --simulation com.ymoroz.snowflake.loadtest.SnowflakeGrpcSimulation
 ```
 
-Override runtime parameters:
+Example overrides:
 
 ```bash
 ./gradlew :snowflake-loadtest:gatlingRun \
   --simulation com.ymoroz.snowflake.loadtest.SnowflakeGrpcSimulation \
   -Dsnowflake.host=localhost \
-  -Dsnowflake.port=9090 \
-  -Dsnowflake.users=200 \
-  -Dsnowflake.rampSeconds=30 \
-  -Dsnowflake.requestsPerUser=1000 \
-  -Dsnowflake.pauseMs=0 \
-  -Dsnowflake.callDeadlineMs=1000
+  -Dsnowflake.port=443 \
+  -Dsnowflake.useTls=true \
+  -Dsnowflake.users=1000 \
+  -Dsnowflake.rampSeconds=100 \
+  -Dsnowflake.requestsPerUser=1000
 ```
 
-## CI/CD Pipeline
+## Local Pipeline (Kind + Helm)
 
-The project includes a comprehensive local CI/CD pipeline in the `ci-cd/` directory with the following stages:
-
-### Pipeline Stages
-
-1. **build**: Compiles the project using Gradle
-2. **test**: Runs all unit tests
-3. **docker-build**: Builds Docker image with Git commit hash and `latest` tags
-4. **docker-publish**: Publishes image to Docker Hub (requires authentication)
-5. **deploy**: Deploys to local Kubernetes cluster using Kind and Helm
-6. **loadtest**: Runs Gatling load tests against local server
-7. **cleanup**: Cleans up Kubernetes cluster and Docker images (with confirmation)
-
-### Running the Pipeline
-
-#### One-Command Execution
-
-Run the complete pipeline:
+Run the end-to-end local flow:
 
 ```bash
-./ci-cd/local-pipeline.sh
+./local-run.sh
 ```
 
-#### Stage-by-Stage Execution
+This orchestrates:
 
-Run individual stages:
+1. `infra/pipeline-environment-set-up.sh`
+2. `ci-cd/pipeline-build.sh`
+3. `ci-cd/pipeline-deployment.sh`
+4. Optional `ci-cd/pipeline-load-test.sh`
 
-```bash
-# Build stage
-./ci-cd/stage-build.sh
+Infra behavior used by this flow:
 
-# Test stage
-./ci-cd/stage-test.sh
+- Kind cluster name: `dev-cluster`
+- Host port mappings: `443 -> ingress`, `30090 -> service NodePort`, `30091 -> Prometheus`, `30300 -> Grafana`
+- TLS secret `snowflake-id-service-tls` is created from local `certs/` (self-signed for `localhost` if absent)
+- Metrics Server is installed and validated (`kubectl top`) for HPA support
 
-# Docker build stage
-./ci-cd/stage-docker-build.sh
-
-# Docker publish stage
-./ci-cd/stage-docker-publish.sh
-
-# Deploy to Kubernetes
-./ci-cd/stage-deploy.sh
-
-# Load test stage
-./ci-cd/stage-loadtest.sh
-
-# Cleanup stage
-./ci-cd/stage-cleanup.sh
-```
-
-### Configuration
-
-The pipeline uses `ci-cd/local.env` for Docker Hub credentials and optional Grafana password:
+Optional credentials for Docker Hub publish/pull and Grafana admin password can be provided in root `local.env`:
 
 ```bash
 export DOCKERHUB_USERNAME=your-username
-export DOCKERHUB_PASSWORD=your-password
+export DOCKERHUB_PASSWORD=your-password-or-token
 export GRAFANA_ADMIN_PASSWORD=change-me
 ```
 
-### Key Features
+You can also run stages directly:
 
-- Automatic Docker daemon detection and startup
-- Kind Kubernetes cluster management
-- Helm chart deployment with configurable values
-- Gatling load testing with predefined parameters
-- Cleanup with interactive confirmation for cluster and images
-- Comprehensive logging to `ci-cd/ci-cd.log`
-- Parallel execution of stages with clear separation
+```bash
+./ci-cd/stage-build.sh
+./ci-cd/stage-test.sh
+./ci-cd/stage-docker-build.sh
+./ci-cd/stage-docker-publish.sh
+```
 
-## API Contract
+Cleanup:
 
-Proto definition:
+```bash
+./cleanup.sh
+```
 
-- `snowflake-proto/src/main/proto/snowflake.proto`
-
-The main RPC returns a generated 64-bit ID.
-
-## Container
+## Docker
 
 Build image:
 
@@ -212,30 +197,53 @@ docker build -t snowflake-id-service:latest .
 Run image:
 
 ```bash
-docker run --rm -p 9090:9090 snowflake-id-service:latest
+docker run --rm -p 9090:9090 -p 9091:9091 snowflake-id-service:latest
 ```
 
 ## Kubernetes (Helm)
 
-Install the chart:
+Install chart:
 
 ```bash
-helm install snowflake-id-service ./helm/snowflake-id-service
+helm upgrade --install snowflake-id-service ./helm/snowflake-id-service
 ```
 
-Customize deployment via `helm/snowflake-id-service/values.yaml`.
+Customize via `helm/snowflake-id-service/values.yaml`.
 
 ## Observability
 
-The service exposes Prometheus metrics on `http://<pod-ip>:8080/actuator/prometheus`.
+When the local infra pipeline is deployed:
 
-When running `./ci-cd/stage-deploy.sh`, the pipeline installs `kube-prometheus-stack` in the `monitoring` namespace and enables app scraping via `ServiceMonitor`.
+- Grafana: `http://localhost:30300`
+- Prometheus: `http://localhost:30091`
 
-- Grafana URL: `http://localhost:30300` (user `admin`, password from `GRAFANA_ADMIN_PASSWORD` or `admin`)
-- Prometheus URL: `http://localhost:30091`
-- Stack values file: `k8s/observability/kube-prometheus-stack-values.yaml`
+Application metrics endpoint:
 
-## Notes
+- `http://<pod-ip>:8080/actuator/prometheus`
 
-- This repository intentionally avoids embedding personal/private registry coordinates in examples.
-- If you publish artifacts or images, replace placeholders with your own organization/repository names.
+## Project Status
+
+Actively maintained and used for local development, Kubernetes deployment, and load-testing workflows.
+
+## Support
+
+Open an issue for bugs, questions, or feature requests:
+
+- <https://github.com/ymoroz89/snowflake-id-service/issues>
+
+## Contributing
+
+Contributions are welcome.
+
+1. Fork and create a feature branch.
+2. Make your changes with tests.
+3. Run `./gradlew clean test`.
+4. Open a pull request.
+
+## Maintainer
+
+- [@ymoroz89](https://github.com/ymoroz89)
+
+## License
+
+No `LICENSE` file is currently present in this repository.

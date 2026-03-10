@@ -1,5 +1,5 @@
 # Default values for snowflake-id-service
-replicaCount: 2
+replicaCount: 3
 
 image:
   repository: "snowflake-id-service"
@@ -61,7 +61,7 @@ resources:
 autoscaling:
   enabled: true
   minReplicas: 3
-  maxReplicas: 13
+  maxReplicas: 15
   targetCPUUtilizationPercentage: 70
   targetMemoryUtilizationPercentage: 80
 

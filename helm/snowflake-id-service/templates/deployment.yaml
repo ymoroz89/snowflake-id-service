@@ -55,7 +55,7 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
-            - name: SNOWFLAKE_STATE_FILE
+            - name: STATE_FILE
               value: "/data/snowflake.state"
           {{- if .Values.startupProbe }}
           startupProbe:

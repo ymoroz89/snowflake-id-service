@@ -25,6 +25,8 @@ class SnowflakeGrpcSimulation extends Simulation {
   private val requestsPerUser: Int = Integer.getInteger("snowflake.requestsPerUser", 100)
   private val pauseMs: Int = Integer.getInteger("snowflake.pauseMs", 0)
   private val callDeadlineMs: Long = java.lang.Long.getLong("snowflake.callDeadlineMs", 1000L)
+  private val keepAliveTime: Int = Integer.getInteger("snowflake.keepAliveTime", 30)
+  private val keepAliveTimeout: Int = Integer.getInteger("snowflake.keepAliveTimeout", 5)
 
   @volatile private var channel: ManagedChannel = _
   @volatile private var stub: SnowflakeServiceGrpc.SnowflakeServiceBlockingStub = _
@@ -54,6 +56,12 @@ class SnowflakeGrpcSimulation extends Simulation {
     } else {
       channelBuilder.usePlaintext()
     }
+
+    // Enable HTTP/2 multiplexing for connection reuse
+    channelBuilder
+      .keepAliveTime(keepAliveTime, TimeUnit.SECONDS)
+      .keepAliveTimeout(keepAliveTimeout, TimeUnit.SECONDS)
+      .keepAliveWithoutCalls(true) // Send keep-alive pings even without active calls to prevent connection timeouts
 
     channel = channelBuilder.build()
     stub = SnowflakeServiceGrpc.newBlockingStub(channel)
