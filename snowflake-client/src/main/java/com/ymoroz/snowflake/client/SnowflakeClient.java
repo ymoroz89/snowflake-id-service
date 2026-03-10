@@ -14,13 +14,23 @@ public class SnowflakeClient implements AutoCloseable {
     private final SnowflakeServiceGrpc.SnowflakeServiceBlockingStub blockingStub;
 
     public SnowflakeClient(String host, int port) {
+        this(host, port, 30, 5);
+    }
+
+    public SnowflakeClient(String host, int port, long keepAliveTime, long keepAliveTimeout) {
         this(ManagedChannelBuilder.forAddress(host, port)
                 .usePlaintext()
+                // Enable HTTP/2 multiplexing for connection reuse
+                // Keep-alive prevents premature connection drops due to network timeouts,
+                // but doesn't prevent intentional shutdown when the application is done with the connection
+                .keepAliveTime(keepAliveTime, TimeUnit.SECONDS)
+                .keepAliveTimeout(keepAliveTimeout, TimeUnit.SECONDS)
+                .keepAliveWithoutCalls(true) // Send keep-alive pings even without active calls to prevent connection timeouts
                 .build());
     }
 
     public SnowflakeClient(SnowflakeClientProperties properties) {
-        this(properties.getHost(), properties.getPort());
+        this(properties.getHost(), properties.getPort(), properties.getKeepAliveTime(), properties.getKeepAliveTimeout());
     }
 
     public SnowflakeClient(ManagedChannel channel) {
