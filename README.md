@@ -20,7 +20,7 @@ This repository provides a production-oriented Snowflake setup with:
 | `snowflake-client` | Java gRPC client library (`SnowflakeClient`) + Spring Boot auto-config |
 | `snowflake-proto` | Protobuf/gRPC API contract and generated stubs |
 | `snowflake-loadtest` | Gatling load-testing module for gRPC traffic |
-| `helm/snowflake-id-service` | Helm chart for app deployment |
+| `helm/snowflake-id-service` | Helm chart for app deployment. [Chart README](helm/snowflake-id-service/README.md) |
 | `infra` | Kind cluster and local infrastructure setup scripts |
 | `ci-cd` | Build/test/image/deploy/load-test pipeline scripts |
 
@@ -155,6 +155,13 @@ This orchestrates:
 2. `ci-cd/pipeline-build.sh`
 3. `ci-cd/pipeline-deployment.sh`
 4. Optional `ci-cd/pipeline-load-test.sh`
+
+Infra behavior used by this flow:
+
+- Kind cluster name: `dev-cluster`
+- Host port mappings: `443 -> ingress`, `30090 -> service NodePort`, `30091 -> Prometheus`, `30300 -> Grafana`
+- TLS secret `snowflake-id-service-tls` is created from local `certs/` (self-signed for `localhost` if absent)
+- Metrics Server is installed and validated (`kubectl top`) for HPA support
 
 Optional credentials for Docker Hub publish/pull and Grafana admin password can be provided in root `local.env`:
 

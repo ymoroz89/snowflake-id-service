@@ -89,14 +89,60 @@ Manages state persistence to ensure ID uniqueness across service restarts.
 
 #### Kubernetes Integration
 - **Hostname-based Node ID**: Extracts ordinal from pod hostname (e.g., `snowflake-1` → node ID 1)
-- **State File Path**: Configurable via environment variables
+- **State File Path**: Controlled by `state.file` property (default `/data/snowflake.state` in this project).
 - **Container-friendly**: Designed for stateful set deployment
+
+#### Helm Deployment Topology (`helm/snowflake-id-service`)
+- **Workload**: `StatefulSet` with persistent storage (`/data`) and stable pod identities.
+- **Networking**:
+  - App service: NodePort service on `9090` (default node port `30090`) for gRPC.
+  - Headless service: used for StatefulSet DNS identity.
+  - Ingress: enabled by default with `nginx` class and `nginx.ingress.kubernetes.io/backend-protocol: GRPC`.
+  - TLS: enabled by default, secret `snowflake-id-service-tls`, default host `localhost`.
+- **Ports exposed by container**:
+  - gRPC API: `9090`
+  - gRPC health endpoint: `9091`
+  - HTTP metrics endpoint: `8080` (`/actuator/prometheus`)
+- **Autoscaling**:
+  - HPA is enabled by default and targets the StatefulSet.
+  - Defaults: `minReplicas=3`, `maxReplicas=15`, CPU target `70%`, memory target `80%`.
+- **Observability resources**:
+  - Dedicated metrics service (`*-metrics`) is enabled by default.
+  - `ServiceMonitor` is enabled by default for Prometheus Operator setups.
+  - Companion Helm values in this repo expose Grafana/Prometheus via NodePorts (`30300`/`30091`).
+- **Ingress controller defaults in this repo**:
+  - `helm/ingress-nginx/values.yaml` configures ingress-nginx HTTPS NodePort `30443`.
+
+#### Local Infrastructure Orchestration (`infra/`)
+- `infra/pipeline-environment-set-up.sh` prepares local infrastructure before app deployment.
+- `infra/kind-cluster.sh create` ensures Kind cluster `dev-cluster` and installs Metrics Server for HPA metrics.
+  - Applies upstream Metrics Server manifest.
+  - Adds `--kubelet-insecure-tls`.
+  - Scales Metrics Server to 3 replicas and validates `kubectl top nodes`.
+- `infra/create-tls-secret.sh` generates/reuses self-signed certs for `localhost` in `certs/` and creates Kubernetes secret `snowflake-id-service-tls`.
+- Installs `ingress-nginx` and `kube-prometheus-stack` via repository-local values files:
+  - `helm/ingress-nginx/values.yaml`
+  - `helm/kube-prometheus-stack/values.yaml`
+- Kind control-plane host port mappings (`infra/kind/kind-config.yaml`):
+  - `443 -> 30443` (ingress-nginx HTTPS entrypoint)
+  - `30090 -> 30090` (service NodePort exposure)
+  - `30091 -> 30091` (Prometheus)
+  - `30300 -> 30300` (Grafana)
 
 ### Configuration
 
 #### Environment Variables
-- `HOSTNAME`: Kubernetes pod hostname (auto-extracted for node ID)
-- `snowflake.state.file`: State file path (default: `/data/snowflake.state`)
+- `HOSTNAME`: Kubernetes pod name (used to derive node ID from the numeric suffix).
+- `GRPC_SERVER_PORT`: Helm chart sets this to app gRPC port (`9090` by default).
+- `APP_HEALTH_PORT`: Health gRPC server port (default Helm value `9091`).
+- `SERVER_PORT`: HTTP management/metrics port (default Helm value `8080`).
+- `STATE_FILE`: Set by Helm chart to `/data/snowflake.state` (binds to `state.file`).
+- `GRAFANA_ADMIN_PASSWORD`: Used by infra setup when installing `kube-prometheus-stack` (defaults to `admin`).
+
+#### Application Properties
+- `state.file`: State file location used by `SnowflakeStateService` (default `/data/snowflake.state`).
+- `snowflake.hostname`: Hostname used for node ID parsing (defaults to `${HOSTNAME:snowflake-0}`).
+- `snowflake.custom-epoch`, `snowflake.node-id-bits`, `snowflake.sequence-bits`, `snowflake.time-offset-buffer-ms`.
 
 #### Customization Points
 - **Custom Epoch**: Configurable base timestamp (default: 2015-01-01)
@@ -141,19 +187,22 @@ Manages state persistence to ensure ID uniqueness across service restarts.
 ### Deployment Considerations
 
 #### Kubernetes Deployment
-- **StatefulSet**: Recommended for stable hostname-based node IDs
-- **Persistent Volume**: Required for state file persistence
-- **Resource Limits**: CPU and memory constraints based on expected load
+- **StatefulSet**: Used by Helm chart for stable hostname-based node IDs.
+- **Persistent Volume**: Enabled by default (`ReadWriteOnce`, `10Mi`) for `/data/snowflake.state`.
+- **Security Context**: Runs as non-root (`runAsUser=65532`), drops capabilities, read-only root filesystem.
+- **Graceful Termination**: Pre-stop hook sleeps 30s; termination grace period is 45s.
+- **Local Cluster Baseline**: Kind cluster has one control-plane + two workers in this repository configuration.
 
 #### Monitoring
-- **Metrics**: ID generation rate, latency, error rates
-- **Health Checks**: Service availability and state persistence
-- **Logging**: Comprehensive operation logging for debugging
+- **Metrics**: ID generation counters/latency plus Spring Actuator Prometheus endpoint on `:8080`.
+- **Health Checks**: Kubernetes gRPC liveness/readiness probes on port `9091`.
+- **ServiceMonitor**: Chart can expose metrics to Prometheus Operator via `ServiceMonitor`.
+- **Logging**: Comprehensive operation logging for debugging.
 
 #### Scaling
-- **Horizontal Scaling**: Add more pods for increased capacity
-- **Node ID Management**: Ensure unique hostnames in StatefulSet
-- **State Isolation**: Each pod maintains independent state
+- **Horizontal Scaling**: Managed by HPA (`autoscaling/v2`) against CPU and memory utilization.
+- **Node ID Management**: Hostname suffix is used as node ID, so stable pod naming is required.
+- **State Isolation**: Each pod has its own PVC and state file.
 
 ### Performance Characteristics
 

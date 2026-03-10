@@ -25,7 +25,7 @@ public class SnowflakeGrpcService extends SnowflakeServiceGrpc.SnowflakeServiceI
 
     @Override
     public void generateId(GenerateIdRequest request, StreamObserver<GenerateIdResponse> responseObserver) {
-        long id = idGenerationLatency.record(() -> snowflakeService.nextId());
+        long id = idGenerationLatency.record(snowflakeService::nextId);
         generatedIdsCounter.increment();
         GenerateIdResponse response = GenerateIdResponse.newBuilder()
                 .setId(id)

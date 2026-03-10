@@ -9,11 +9,11 @@ controller:
     default: false
     controllerValue: "k8s.io/ingress-nginx"
   ingressClass: nginx
-  replicaCount: 2
+  replicaCount: 3
   autoscaling:
     enabled: true
     minReplicas: 3
-    maxReplicas: 13
+    maxReplicas: 15
     targetCPUUtilizationPercentage: 70
     targetMemoryUtilizationPercentage: 80
   resources:
