@@ -7,10 +7,12 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
+import java.util.Objects;
+import java.util.function.LongSupplier;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -40,24 +42,36 @@ public class SnowflakeServiceImpl implements SnowflakeService {
     private final int sequenceBits;
     private final int timestampShiftBits;
     private final long timeOffsetBufferMs;
+    private final long maxClockBackwardWaitMs;
+    private final LongSupplier currentTimeMillisSupplier;
     private final ReentrantLock lock;
 
     private long lastTimestamp = -1L;
     private long sequence = 0L;
     private final AtomicLong lastSavedTimestamp = new AtomicLong(-1L);
 
+    @Autowired
     public SnowflakeServiceImpl(final SnowflakeStateService stateService,
                                 final SnowflakeProperties snowflakeProperties,
                                 final NodeIdParser nodeIdParser) {
+        this(stateService, snowflakeProperties, nodeIdParser, System::currentTimeMillis);
+    }
+
+    SnowflakeServiceImpl(final SnowflakeStateService stateService,
+                         final SnowflakeProperties snowflakeProperties,
+                         final NodeIdParser nodeIdParser,
+                         final LongSupplier currentTimeMillisSupplier) {
         this.sequenceBits = snowflakeProperties.getSequenceBits();
         this.nodeIdParser = nodeIdParser;
         this.maxSequence = (1L << sequenceBits) - 1;
         this.timestampShiftBits = snowflakeProperties.getNodeIdBits() + sequenceBits;
         this.timeOffsetBufferMs = snowflakeProperties.getTimeOffsetBufferMs();
+        this.maxClockBackwardWaitMs = snowflakeProperties.getMaxClockBackwardWaitMs();
         this.nodeId = parseNodeId(snowflakeProperties.getHostname(), snowflakeProperties.getNodeIdBits());
         this.stateService = stateService;
         this.snowflakeProperties = snowflakeProperties;
         this.lock = new ReentrantLock();
+        this.currentTimeMillisSupplier = Objects.requireNonNull(currentTimeMillisSupplier, "currentTimeMillisSupplier must not be null");
     }
 
     private long parseNodeId(String hostName, int nodeIdBits) {
@@ -71,7 +85,7 @@ public class SnowflakeServiceImpl implements SnowflakeService {
 
     @PostConstruct
     public void init() {
-        long currentTime = System.currentTimeMillis() - snowflakeProperties.getCustomEpoch();
+        long currentTime = currentTimeMillisSupplier.getAsLong() - snowflakeProperties.getCustomEpoch();
         long loadedState = stateService.loadState(currentTime);
         lastSavedTimestamp.set(loadedState);
         lastTimestamp = Math.max(lastTimestamp, loadedState);
@@ -79,16 +93,21 @@ public class SnowflakeServiceImpl implements SnowflakeService {
 
     @PreDestroy
     public void destroy() {
-        saveState(); // Save one last time on shutdown
+        long shutdownSaveTime = Math.max(lastSavedTimestamp.get(), currentTimestamp() + timeOffsetBufferMs);
+        stateService.saveState(shutdownSaveTime);
+        lastSavedTimestamp.set(shutdownSaveTime);
     }
 
     @Override
     public long nextId() {
+        SaveReservation saveReservation;
+        long generatedId;
+
         lock.lock();
         try {
             long currentTimestamp = currentTimestamp();
-            validateTimestamp(currentTimestamp);
-            validateSystemClock(currentTimestamp);
+            currentTimestamp = validateSystemClock(currentTimestamp);
+            saveReservation = reserveTimestampIfNeeded(currentTimestamp);
 
             if (currentTimestamp == lastTimestamp) {
                 sequence = (sequence + 1) & maxSequence;
@@ -105,33 +124,60 @@ public class SnowflakeServiceImpl implements SnowflakeService {
             }
 
             lastTimestamp = currentTimestamp;
-            return buildId(currentTimestamp);
+            generatedId = buildId(currentTimestamp);
         } finally {
             lock.unlock();
         }
+
+        persistReservedState(saveReservation);
+        return generatedId;
     }
 
-    private void validateTimestamp(long currentTimestamp) {
-        // Ensure we don't generate IDs ahead of our reserved time window
-        // This is a safety check, though loadState handles the initial catch-up
-        if (currentTimestamp > lastSavedTimestamp.get()) {
-            // If we drifted past our reservation (e.g. scheduler stalled), save immediately
-            // We still need to lock here or just call the non-locking saveState
-            // But since this is a critical path fallback, calling saveState() is fine.
-            // However, saveState() is now non-locking, so it's safe.
-            saveState();
+    private SaveReservation reserveTimestampIfNeeded(long currentTimestamp) {
+        while (true) {
+            long previousReservedTimestamp = lastSavedTimestamp.get();
+            if (currentTimestamp <= previousReservedTimestamp) {
+                return SaveReservation.NONE;
+            }
+
+            long reservedTimestamp = currentTimestamp + timeOffsetBufferMs;
+            if (lastSavedTimestamp.compareAndSet(previousReservedTimestamp, reservedTimestamp)) {
+                return new SaveReservation(previousReservedTimestamp, reservedTimestamp);
+            }
         }
     }
 
-    private void validateSystemClock(long currentTimestamp) {
-        if (currentTimestamp < lastTimestamp) {
-            log.error("Invalid System Clock! Current: {}, Last: {}", currentTimestamp, lastTimestamp);
-            throw new IllegalStateException("Invalid System Clock!");
+    private void persistReservedState(SaveReservation saveReservation) {
+        if (!saveReservation.required()) {
+            return;
+        }
+
+        try {
+            stateService.saveState(saveReservation.reservedTimestamp());
+        } catch (RuntimeException e) {
+            lastSavedTimestamp.compareAndSet(saveReservation.reservedTimestamp(), saveReservation.previousReservedTimestamp());
+            throw e;
         }
     }
 
     private long currentTimestamp() {
-        return Instant.now().toEpochMilli() - snowflakeProperties.getCustomEpoch();
+        return currentTimeMillisSupplier.getAsLong() - snowflakeProperties.getCustomEpoch();
+    }
+
+    private long validateSystemClock(long currentTimestamp) {
+        if (currentTimestamp >= lastTimestamp) {
+            return currentTimestamp;
+        }
+
+        long clockBackwardsMs = lastTimestamp - currentTimestamp;
+        if (clockBackwardsMs <= maxClockBackwardWaitMs) {
+            log.warn("System clock moved backwards by {} ms. Waiting for clock recovery.", clockBackwardsMs);
+            return waitUntilTimestamp(lastTimestamp);
+        }
+
+        log.error("Invalid System Clock! Current: {}, Last: {}, Backwards by {} ms",
+                currentTimestamp, lastTimestamp, clockBackwardsMs);
+        throw new IllegalStateException("Invalid System Clock!");
     }
 
     private long buildId(long currentTimestamp) {
@@ -140,20 +186,36 @@ public class SnowflakeServiceImpl implements SnowflakeService {
                 | sequence;
     }
 
+    private long waitUntilTimestamp(long targetTimestamp) {
+        long timestamp = currentTimestamp();
+        while (timestamp < targetTimestamp) {
+            Thread.onSpinWait();
+            timestamp = currentTimestamp();
+        }
+        return timestamp;
+    }
+
     private long waitNextMillis(long currentTimestamp) {
         long timestamp = currentTimestamp;
         while (timestamp <= lastTimestamp) {
+            Thread.onSpinWait();
             timestamp = currentTimestamp();
         }
         return timestamp;
     }
 
     @Scheduled(fixedRate = 1000) // Run every 1 second
-    private void saveState() {
-        // No lock needed here as we are just updating the atomic long and saving to disk
-        // The validateTimestamp method only reads the atomic long
+    void saveState() {
         long saveTime = currentTimestamp() + timeOffsetBufferMs;
         stateService.saveState(saveTime);
-        lastSavedTimestamp.set(saveTime);
+        lastSavedTimestamp.accumulateAndGet(saveTime, Math::max);
+    }
+
+    private record SaveReservation(long previousReservedTimestamp, long reservedTimestamp) {
+        private static final SaveReservation NONE = new SaveReservation(-1L, -1L);
+
+        private boolean required() {
+            return reservedTimestamp >= 0;
+        }
     }
 }

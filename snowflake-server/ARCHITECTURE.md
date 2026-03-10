@@ -190,7 +190,7 @@ stub.generateId(request, new StreamObserver<GenerateIdResponse>() {
 #### Application Properties
 - `state.file`: State file location used by `SnowflakeStateService` (default `/data/snowflake.state`).
 - `snowflake.hostname`: Hostname used for node ID parsing (defaults to `${HOSTNAME:snowflake-0}`).
-- `snowflake.custom-epoch`, `snowflake.node-id-bits`, `snowflake.sequence-bits`, `snowflake.time-offset-buffer-ms`.
+- `snowflake.custom-epoch`, `snowflake.node-id-bits`, `snowflake.sequence-bits`, `snowflake.time-offset-buffer-ms`, `snowflake.max-clock-backward-wait-ms`.
 
 #### Customization Points
 - **Custom Epoch**: Configurable base timestamp (default: 2015-01-01)
@@ -201,7 +201,8 @@ stub.generateId(request, new StreamObserver<GenerateIdResponse>() {
 
 #### Clock Drift Protection
 - Detects system clock adjustments
-- Automatically waits for time to catch up
+- Automatically waits for small backward shifts
+- Fails fast on larger backward shifts (configurable threshold)
 - Prevents duplicate ID generation during clock corrections
 
 #### State Management Errors
