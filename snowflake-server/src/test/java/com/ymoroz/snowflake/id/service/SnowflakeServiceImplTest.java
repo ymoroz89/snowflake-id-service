@@ -3,6 +3,7 @@ package com.ymoroz.snowflake.id.service;
 import com.ymoroz.snowflake.id.config.SnowflakeProperties;
 import com.ymoroz.snowflake.id.parser.NodeIdParser;
 import com.ymoroz.snowflake.id.parser.NodeIdParserImpl;
+import com.ymoroz.snowflake.id.state.SnowflakeStatePersistenceCoordinator;
 import com.ymoroz.snowflake.id.state.SnowflakeStateServiceImpl;
 import org.junit.jupiter.api.Test;
 
@@ -18,14 +19,26 @@ class SnowflakeServiceImplTest {
     private final SnowflakeProperties snowflakeProperties = new SnowflakeProperties();
     private final NodeIdParser nodeIdParser = new NodeIdParserImpl();
 
+    private SnowflakeStatePersistenceCoordinator createStatePersistenceCoordinator() {
+        return new SnowflakeStatePersistenceCoordinator(mockStateService, snowflakeProperties);
+    }
+
+    private SnowflakeServiceImpl createService() {
+        return new SnowflakeServiceImpl(snowflakeProperties, nodeIdParser, createStatePersistenceCoordinator());
+    }
+
+    private SnowflakeServiceImpl createService(NodeIdParser parser) {
+        return new SnowflakeServiceImpl(snowflakeProperties, parser, createStatePersistenceCoordinator());
+    }
+
     private SnowflakeServiceImpl createServiceWithClock(AtomicLong currentTimeMillis) {
-        return new SnowflakeServiceImpl(mockStateService, snowflakeProperties, nodeIdParser, currentTimeMillis::get);
+        return new SnowflakeServiceImpl(snowflakeProperties, nodeIdParser, createStatePersistenceCoordinator(), currentTimeMillis::get);
     }
 
     @Test
     void testExtractOrdinalKubernetesHostname() {
         snowflakeProperties.setHostname(KUBERNETES_HOSTNAME);
-        SnowflakeServiceImpl service = new SnowflakeServiceImpl(mockStateService, snowflakeProperties, nodeIdParser);
+        SnowflakeServiceImpl service = createService();
         long id = service.nextId();
         long extractedNodeId = (id >> 12) & 0x3FF;
         assertEquals(1, extractedNodeId);
@@ -34,13 +47,13 @@ class SnowflakeServiceImplTest {
     @Test
     void testExtractOrdinalNullHostname() {
         snowflakeProperties.setHostname(null);
-        assertThrows(IllegalArgumentException.class, () -> new SnowflakeServiceImpl(mockStateService, snowflakeProperties, nodeIdParser));
+        assertThrows(IllegalArgumentException.class, this::createService);
     }
 
     @Test
     void testDefaultConstructor() {
         snowflakeProperties.setHostname(KUBERNETES_HOSTNAME);
-        SnowflakeServiceImpl service = new SnowflakeServiceImpl(mockStateService, snowflakeProperties, nodeIdParser);
+        SnowflakeServiceImpl service = createService();
         assertNotNull(service);
         service.nextId();
     }
@@ -157,7 +170,7 @@ class SnowflakeServiceImplTest {
     void testNodeIdOutOfRangeHigh() {
         snowflakeProperties.setHostname("snowflake-2000"); // 2000 > 1023
         snowflakeProperties.setNodeIdBits(10);
-        assertThrows(IllegalArgumentException.class, () -> new SnowflakeServiceImpl(mockStateService, snowflakeProperties, nodeIdParser));
+        assertThrows(IllegalArgumentException.class, this::createService);
     }
 
     @Test
@@ -166,7 +179,7 @@ class SnowflakeServiceImplTest {
         when(mockParser.parse(anyString())).thenReturn(-1L);
         snowflakeProperties.setHostname("snowflake-minus-1");
         snowflakeProperties.setNodeIdBits(10);
-        assertThrows(IllegalArgumentException.class, () -> new SnowflakeServiceImpl(mockStateService, snowflakeProperties, mockParser));
+        assertThrows(IllegalArgumentException.class, () -> createService(mockParser));
     }
 
     @Test
@@ -179,7 +192,7 @@ class SnowflakeServiceImplTest {
         SnowflakeServiceImpl service = createServiceWithClock(now);
 
         service.nextId();
-        verify(mockStateService, atLeastOnce()).saveState(anyLong());
+        verify(mockStateService, timeout(500).atLeastOnce()).saveState(anyLong());
     }
 
     @Test
@@ -195,13 +208,13 @@ class SnowflakeServiceImplTest {
         method.setAccessible(true);
 
         method.invoke(service);
-        verify(mockStateService).saveState(anyLong());
+        verify(mockStateService, timeout(500)).saveState(anyLong());
     }
 
     @Test
     void testToString() {
         snowflakeProperties.setHostname(KUBERNETES_HOSTNAME);
-        SnowflakeService service = new SnowflakeServiceImpl(mockStateService, snowflakeProperties, nodeIdParser);
+        SnowflakeService service = createService();
         String toString = service.toString();
         assertNotNull(toString);
         assertTrue(toString.contains("SnowflakeServiceImpl"));

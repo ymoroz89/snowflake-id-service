@@ -10,6 +10,8 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import org.springframework.stereotype.Service;
 
+import java.util.concurrent.TimeUnit;
+
 @Service
 public class SnowflakeGrpcService extends SnowflakeServiceGrpc.SnowflakeServiceImplBase {
 
@@ -25,12 +27,17 @@ public class SnowflakeGrpcService extends SnowflakeServiceGrpc.SnowflakeServiceI
 
     @Override
     public void generateId(GenerateIdRequest request, StreamObserver<GenerateIdResponse> responseObserver) {
-        long id = idGenerationLatency.record(snowflakeService::nextId);
-        generatedIdsCounter.increment();
-        GenerateIdResponse response = GenerateIdResponse.newBuilder()
-                .setId(id)
-                .build();
-        responseObserver.onNext(response);
-        responseObserver.onCompleted();
+        long startNanos = System.nanoTime();
+        try {
+            long id = snowflakeService.nextId();
+            generatedIdsCounter.increment();
+            GenerateIdResponse response = GenerateIdResponse.newBuilder()
+                    .setId(id)
+                    .build();
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+        } finally {
+            idGenerationLatency.record(System.nanoTime() - startNanos, TimeUnit.NANOSECONDS);
+        }
     }
 }

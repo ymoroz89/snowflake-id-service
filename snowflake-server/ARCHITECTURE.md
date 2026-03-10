@@ -50,8 +50,8 @@ Manages state persistence to ensure ID uniqueness across service restarts.
 - Allows for different persistence strategies (file-based, database, etc.)
 
 #### Observer Pattern
-- Scheduled executor observes time progression and triggers state saves
-- Automatic state persistence every second
+- Scheduled task observes time progression and triggers state save checks
+- State persistence is executed by a dedicated asynchronous worker
 
 #### Factory Pattern
 - Node ID extraction from hostname provides flexible deployment strategies
@@ -73,7 +73,8 @@ Manages state persistence to ensure ID uniqueness across service restarts.
 #### Persistence Strategy
 - **File-based Storage**: State saved to configurable file path (`/data/snowflake.state`)
 - **Buffered Writes**: Uses 3-second buffer to reserve time windows
-- **Periodic Saves**: Automatic state persistence every second via scheduled executor
+- **Periodic Checks**: Scheduled checks run every second and enqueue save requests as needed
+- **Async I/O**: File writes run on a dedicated single-thread worker outside the ID generation path
 
 #### Recovery Mechanisms
 - **Clock Drift Protection**: Automatic waiting when system time is behind saved state
