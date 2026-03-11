@@ -3,6 +3,7 @@ package com.ymoroz.snowflake.id.service;
 import com.ymoroz.snowflake.id.config.SnowflakeProperties;
 import com.ymoroz.snowflake.id.parser.NodeIdParser;
 import com.ymoroz.snowflake.id.parser.NodeIdParserImpl;
+import com.ymoroz.snowflake.id.state.SnowflakeStatePersistenceCoordinator;
 import com.ymoroz.snowflake.id.state.SnowflakeStateServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,7 +25,9 @@ class SnowflakeServiceImplConcurrencyTest {
     void setUp() {
         SnowflakeProperties snowflakeProperties = new SnowflakeProperties();
         snowflakeProperties.setHostname("snowflake-1");
-        service = new SnowflakeServiceImpl(mockStateService, snowflakeProperties, nodeIdParser);
+        SnowflakeStatePersistenceCoordinator coordinator =
+                new SnowflakeStatePersistenceCoordinator(mockStateService, snowflakeProperties);
+        service = new SnowflakeServiceImpl(snowflakeProperties, nodeIdParser, coordinator);
     }
 
     @Test

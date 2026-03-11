@@ -36,6 +36,13 @@ public class SnowflakeProperties {
      * Default: 3000ms (3 seconds)
      */
     private long timeOffsetBufferMs = 3000L;
+
+    /**
+     * Maximum system clock rollback (in milliseconds) that will be handled by waiting.
+     * Larger rollback values fail fast to prevent unpredictable latency spikes.
+     * Default: 10ms.
+     */
+    private long maxClockBackwardWaitMs = 10L;
     
     private String hostname;
 
@@ -71,6 +78,14 @@ public class SnowflakeProperties {
 
     public void setTimeOffsetBufferMs(long timeOffsetBufferMs) {
         this.timeOffsetBufferMs = timeOffsetBufferMs;
+    }
+
+    public long getMaxClockBackwardWaitMs() {
+        return maxClockBackwardWaitMs;
+    }
+
+    public void setMaxClockBackwardWaitMs(long maxClockBackwardWaitMs) {
+        this.maxClockBackwardWaitMs = maxClockBackwardWaitMs;
     }
 
     public String getHostname() {

@@ -142,7 +142,7 @@ delete_logs() {
   log "Stage: cleanup - Logs"
   log "========================================"
 
-  local log_files=("$PROJECT_ROOT/ci-cd/ci-cd.log" "$PROJECT_ROOT/infra/infra.log")
+  local log_files=("$PROJECT_ROOT/ci-cd/ci-cd.log" "$PROJECT_ROOT/infra/infra.log" "$PROJECT_ROOT/ci-cd/load-test.log")
   local found_logs=()
 
   for file in "${log_files[@]}"; do

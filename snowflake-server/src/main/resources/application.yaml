@@ -11,6 +11,9 @@ snowflake:
   
   # Time offset buffer in milliseconds (default: 3000ms = 3 seconds)
   time-offset-buffer-ms: 3000
+
+  # Max clock rollback handled by waiting before fail-fast kicks in (default: 10ms)
+  max-clock-backward-wait-ms: 10
   
   # Hostname for node identification (default: snowflake-0)
   hostname: ${HOSTNAME:snowflake-0}
