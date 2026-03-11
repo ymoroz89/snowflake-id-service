@@ -14,11 +14,14 @@ serviceAccount:
   create: true
   annotations: {}
   name: ""
+  automountServiceAccountToken: false
 
 podAnnotations: {}
 
 podSecurityContext:
   fsGroup: 65532
+  seccompProfile:
+    type: RuntimeDefault
 
 securityContext:
   allowPrivilegeEscalation: false
@@ -98,6 +101,10 @@ persistence:
   size: 10Mi
   storageClass: "" # Use default storage class
   # storageClassName: "standard" # Uncomment to specify storage class
+
+pdb:
+  enabled: true
+  minAvailable: 1
 
 # Health checks
 livenessProbe:

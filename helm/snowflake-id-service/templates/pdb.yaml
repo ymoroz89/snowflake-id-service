@@ -1,0 +1,13 @@
+{{- if .Values.pdb.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "snowflake-id-service.fullname" . }}
+  labels:
+    {{- include "snowflake-id-service.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.pdb.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "snowflake-id-service.selectorLabels" . | nindent 6 }}
+{{- end }}

@@ -57,8 +57,11 @@ For this repository's local workflow, infra scripts provision the cluster and su
 | `autoscaling.maxReplicas` | `15` |
 | `observability.metricsService.enabled` | `true` |
 | `observability.prometheus.serviceMonitor.enabled` | `true` |
+| `serviceAccount.automountServiceAccountToken` | `false` |
 | `persistence.enabled` | `true` |
 | `persistence.size` | `10Mi` |
+| `pdb.enabled` | `true` |
+| `pdb.minAvailable` | `1` |
 
 ## Install
 
@@ -102,6 +105,7 @@ helm upgrade snowflake-id-service ./helm/snowflake-id-service \
 - Runs as non-root (`runAsUser: 65532`)
 - Drops all Linux capabilities
 - Read-only root filesystem
+- Uses `RuntimeDefault` seccomp profile
 - PVC mounted at `/data` for state file storage
 - Temporary writable volume mounted at `/tmp`
 
