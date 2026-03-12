@@ -33,6 +33,8 @@ import java.util.function.LongSupplier;
 @Service
 @Slf4j
 public class SnowflakeServiceImpl implements SnowflakeService {
+    static final long STATE_FLUSH_INTERVAL_MS = 1000L;
+
     private final NodeIdParser nodeIdParser;
     private final SnowflakeProperties snowflakeProperties;
     private final StatePersistenceCoordinator statePersistenceCoordinator;
@@ -41,6 +43,7 @@ public class SnowflakeServiceImpl implements SnowflakeService {
     private final int sequenceBits;
     private final int timestampShiftBits;
     private final long maxClockBackwardWaitMs;
+    private final long timeOffsetBufferMs;
     private final LongSupplier currentTimeMillisSupplier;
     private final ReentrantLock lock;
 
@@ -58,16 +61,27 @@ public class SnowflakeServiceImpl implements SnowflakeService {
                          final NodeIdParser nodeIdParser,
                          final StatePersistenceCoordinator statePersistenceCoordinator,
                          final LongSupplier currentTimeMillisSupplier) {
+        validatePersistenceBuffer(snowflakeProperties);
         this.sequenceBits = snowflakeProperties.getSequenceBits();
         this.nodeIdParser = nodeIdParser;
         this.maxSequence = (1L << sequenceBits) - 1;
         this.timestampShiftBits = snowflakeProperties.getNodeIdBits() + sequenceBits;
         this.maxClockBackwardWaitMs = snowflakeProperties.getMaxClockBackwardWaitMs();
+        this.timeOffsetBufferMs = snowflakeProperties.getTimeOffsetBufferMs();
         this.nodeId = parseNodeId(snowflakeProperties.getHostname(), snowflakeProperties.getNodeIdBits());
         this.snowflakeProperties = snowflakeProperties;
         this.lock = new ReentrantLock();
         this.currentTimeMillisSupplier = Objects.requireNonNull(currentTimeMillisSupplier, "currentTimeMillisSupplier must not be null");
         this.statePersistenceCoordinator = Objects.requireNonNull(statePersistenceCoordinator, "statePersistenceCoordinator must not be null");
+    }
+
+    private static void validatePersistenceBuffer(SnowflakeProperties snowflakeProperties) {
+        long timeOffsetBufferMs = snowflakeProperties.getTimeOffsetBufferMs();
+        if (timeOffsetBufferMs < STATE_FLUSH_INTERVAL_MS) {
+            throw new IllegalArgumentException(
+                    "snowflake.timeOffsetBufferMs must be at least " + STATE_FLUSH_INTERVAL_MS
+                            + " ms to cover the scheduled state flush interval");
+        }
     }
 
     private long parseNodeId(String hostName, int nodeIdBits) {
@@ -88,7 +102,7 @@ public class SnowflakeServiceImpl implements SnowflakeService {
 
     @PreDestroy
     public void destroy() {
-        statePersistenceCoordinator.persist(currentTimestamp());
+        statePersistenceCoordinator.flushPending();
         statePersistenceCoordinator.shutdown();
     }
 
@@ -96,13 +110,15 @@ public class SnowflakeServiceImpl implements SnowflakeService {
     public long nextId() {
         long generatedTimestamp;
         long generatedId;
+        boolean timestampAdvanced;
 
         lock.lock();
         try {
             long currentTimestamp = currentTimestamp();
             currentTimestamp = validateSystemClock(currentTimestamp);
+            long previousTimestamp = lastTimestamp;
 
-            if (currentTimestamp == lastTimestamp) {
+            if (currentTimestamp == previousTimestamp) {
                 sequence = (sequence + 1) & maxSequence;
 
                 //When the sequence wraps around to 0 (meaning we've generated 4096 IDs in the same millisecond)
@@ -119,11 +135,15 @@ public class SnowflakeServiceImpl implements SnowflakeService {
             lastTimestamp = currentTimestamp;
             generatedTimestamp = currentTimestamp;
             generatedId = buildId(currentTimestamp);
+            timestampAdvanced = generatedTimestamp > previousTimestamp;
         } finally {
             lock.unlock();
         }
 
-        statePersistenceCoordinator.persist(generatedTimestamp);
+        if (timestampAdvanced) {
+            long targetTimestamp = generatedTimestamp + timeOffsetBufferMs;
+            statePersistenceCoordinator.persist(targetTimestamp);
+        }
         return generatedId;
     }
 
@@ -172,15 +192,15 @@ public class SnowflakeServiceImpl implements SnowflakeService {
     }
 
     /**
-     * <p> Why it still matters even with nextId() calling persist(...):
+     * <p> Why it still matters even with nextId() updating persistence state on timestamp changes:
      * <ul>
-     *   <li>It provides periodic retry if async state save failed earlier and traffic later drops.</li>
-     *   <li>It reduces the crash window where generated IDs are ahead of the persisted timestamp.</li>
-     *   <li>It keeps state persistence alive even during low/idle request periods.</li>
+     *   <li>It drives the actual async file write outside the `nextId()` hot path.</li>
+     *   <li>It provides periodic retry if an earlier async state save failed and traffic later drops.</li>
+     *   <li>It bounds the crash window where generated IDs are ahead of the persisted timestamp.</li>
      * </ul>
      */
-    @Scheduled(fixedRate = 1000)
+    @Scheduled(fixedRate = STATE_FLUSH_INTERVAL_MS)
     void saveState() {
-        statePersistenceCoordinator.persist(currentTimestamp());
+        statePersistenceCoordinator.flushPending();
     }
 }

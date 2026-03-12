@@ -26,7 +26,7 @@ class SnowflakeServiceImplConcurrencyTest {
         SnowflakeProperties snowflakeProperties = new SnowflakeProperties();
         snowflakeProperties.setHostname("snowflake-1");
         SnowflakeStatePersistenceCoordinator coordinator =
-                new SnowflakeStatePersistenceCoordinator(mockStateService, snowflakeProperties);
+                new SnowflakeStatePersistenceCoordinator(mockStateService);
         service = new SnowflakeServiceImpl(snowflakeProperties, nodeIdParser, coordinator);
     }
 
@@ -40,15 +40,18 @@ class SnowflakeServiceImplConcurrencyTest {
         var ids = Collections.newSetFromMap(new ConcurrentHashMap<Long, Boolean>());
         ConcurrentLinkedQueue<Throwable> failures = new ConcurrentLinkedQueue<>();
 
-        IntStream.range(0, calls).parallel().forEach(i -> pool.submit(() -> {
-            try {
-                start.await();
-                long id = service.nextId();
-                if (!ids.add(id)) throw new AssertionError("Duplicate id: " + id);
-            } catch (Throwable t) {
-                failures.add(t);
-            }
-        }));
+        // Start tasks
+        for (int i = 0; i < calls; i++) {
+             pool.submit(() -> {
+                try {
+                    start.await();
+                    long id = service.nextId();
+                    if (!ids.add(id)) throw new AssertionError("Duplicate id: " + id);
+                } catch (Throwable t) {
+                    failures.add(t);
+                }
+            });
+        }
 
         start.countDown();
         pool.shutdown();

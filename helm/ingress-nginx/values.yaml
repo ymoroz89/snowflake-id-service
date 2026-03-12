@@ -18,5 +18,5 @@ controller:
     targetMemoryUtilizationPercentage: 80
   resources:
     requests:
-      cpu: 120m
-      memory: 128Mi
+      cpu: 1500m
+      memory: 200Mi

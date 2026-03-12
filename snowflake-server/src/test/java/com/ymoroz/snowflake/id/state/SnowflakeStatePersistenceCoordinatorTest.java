@@ -7,14 +7,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -30,7 +29,7 @@ class SnowflakeStatePersistenceCoordinatorTest {
 
     @BeforeEach
     void setUp() {
-        coordinator = new SnowflakeStatePersistenceCoordinator(stateService, TIME_OFFSET_BUFFER_MS);
+        coordinator = new SnowflakeStatePersistenceCoordinator(stateService);
     }
 
     @AfterEach
@@ -55,39 +54,48 @@ class SnowflakeStatePersistenceCoordinatorTest {
         when(stateService.loadState(100L)).thenReturn(100L + TIME_OFFSET_BUFFER_MS);
         coordinator.initialize(100L);
 
-        coordinator.persist(50L);
+        coordinator.persist(50L + TIME_OFFSET_BUFFER_MS);
+        coordinator.flushPending();
 
         verify(stateService, never()).saveState(anyLong());
     }
 
     @Test
-    void persistSchedulesSaveWhenTimestampIsNewer() {
+    void persistQueuesSaveUntilFlushIsTriggered() {
         when(stateService.loadState(100L)).thenReturn(100L + TIME_OFFSET_BUFFER_MS);
         coordinator.initialize(100L);
 
-        coordinator.persist(150L);
+        long targetTimestamp = 150L + TIME_OFFSET_BUFFER_MS;
+        coordinator.persist(targetTimestamp);
 
-        long expectedReservedTimestamp = 150L + TIME_OFFSET_BUFFER_MS;
-        verify(stateService, timeout(1000)).saveState(expectedReservedTimestamp);
+        verify(stateService, never()).saveState(anyLong());
+
+        coordinator.flushPending();
+
+        verify(stateService).saveState(targetTimestamp);
     }
 
     @Test
-    void persistCoalescesMultipleTimestampsAndSavesOnlyNewest() {
+    void flushPendingSavesOnlyNewestReservedTimestamp() {
         when(stateService.loadState(100L)).thenReturn(100L + TIME_OFFSET_BUFFER_MS);
         coordinator.initialize(100L);
 
-        coordinator.persist(120L);
-        coordinator.persist(150L);
-        coordinator.persist(130L);
+        coordinator.persist(120L + TIME_OFFSET_BUFFER_MS);
+        coordinator.persist(150L + TIME_OFFSET_BUFFER_MS);
+        coordinator.persist(130L + TIME_OFFSET_BUFFER_MS);
 
         long expectedReservedTimestamp = 150L + TIME_OFFSET_BUFFER_MS;
-        verify(stateService, timeout(1000)).saveState(expectedReservedTimestamp);
+        verify(stateService, never()).saveState(anyLong());
+
+        coordinator.flushPending();
+
+        verify(stateService).saveState(expectedReservedTimestamp);
         verify(stateService, never()).saveState(120L + TIME_OFFSET_BUFFER_MS);
         verify(stateService, never()).saveState(130L + TIME_OFFSET_BUFFER_MS);
     }
 
     @Test
-    void persistRollsBackReservationOnFailureAndAllowsRetry() throws InterruptedException {
+    void flushPendingRetainsFailedReservationAndRetriesLater() {
         long initialTimestamp = 100L;
         coordinator.initialize(initialTimestamp);
 
@@ -102,13 +110,15 @@ class SnowflakeStatePersistenceCoordinatorTest {
             return null;
         }).when(stateService).saveState(reservedTimestamp);
 
-        coordinator.persist(newTimestamp);
-        verify(stateService, timeout(1000).times(1)).saveState(reservedTimestamp);
+        coordinator.persist(reservedTimestamp);
+        
+        // First flush - fails
+        coordinator.flushPending();
+        verify(stateService, times(1)).saveState(reservedTimestamp);
 
-        TimeUnit.MILLISECONDS.sleep(200);
-
-        coordinator.persist(newTimestamp);
-        verify(stateService, timeout(1000).times(2)).saveState(reservedTimestamp);
+        // Second flush - succeeds
+        coordinator.flushPending();
+        verify(stateService, times(2)).saveState(reservedTimestamp);
     }
 
     @Test
