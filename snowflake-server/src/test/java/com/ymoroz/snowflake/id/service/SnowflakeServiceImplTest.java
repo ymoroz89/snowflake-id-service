@@ -20,7 +20,7 @@ class SnowflakeServiceImplTest {
     private final NodeIdParser nodeIdParser = new NodeIdParserImpl();
 
     private SnowflakeStatePersistenceCoordinator createStatePersistenceCoordinator() {
-        return new SnowflakeStatePersistenceCoordinator(mockStateService, snowflakeProperties);
+        return new SnowflakeStatePersistenceCoordinator(mockStateService);
     }
 
     private SnowflakeServiceImpl createService() {
@@ -133,8 +133,9 @@ class SnowflakeServiceImplTest {
         snowflakeProperties.setHostname(KUBERNETES_HOSTNAME);
         AtomicLong now = new AtomicLong(1700000000000L);
         SnowflakeServiceImpl service = createServiceWithClock(now);
+        service.nextId();
         service.destroy();
-        verify(mockStateService, atLeastOnce()).saveState(anyLong());
+        verify(mockStateService, timeout(500)).saveState(anyLong());
     }
 
     @Test
@@ -183,32 +184,38 @@ class SnowflakeServiceImplTest {
     }
 
     @Test
-    void testValidateTimestampTriggersSave() {
+    void testTimeOffsetBufferMustCoverFlushInterval() {
+        snowflakeProperties.setHostname(KUBERNETES_HOSTNAME);
+        snowflakeProperties.setTimeOffsetBufferMs(SnowflakeServiceImpl.STATE_FLUSH_INTERVAL_MS - 1);
+
+        assertThrows(IllegalArgumentException.class, this::createService);
+    }
+
+    @Test
+    void testNextIdQueuesStateUntilScheduledFlush() {
         snowflakeProperties.setHostname(KUBERNETES_HOSTNAME);
         snowflakeProperties.setCustomEpoch(0);
         snowflakeProperties.setTimeOffsetBufferMs(1000L);
-        // Initially lastSavedTimestamp is -1
         AtomicLong now = new AtomicLong(2000L);
         SnowflakeServiceImpl service = createServiceWithClock(now);
 
         service.nextId();
-        verify(mockStateService, timeout(500).atLeastOnce()).saveState(anyLong());
+        verify(mockStateService, never()).saveState(anyLong());
+
+        service.saveState();
+        verify(mockStateService, timeout(500)).saveState(anyLong());
     }
 
     @Test
-    void testScheduledSaveState() throws Exception {
+    void testScheduledSaveStateDoesNothingWithoutPendingTimestamp() {
         snowflakeProperties.setHostname(KUBERNETES_HOSTNAME);
         snowflakeProperties.setCustomEpoch(0L);
         snowflakeProperties.setTimeOffsetBufferMs(1000L);
         AtomicLong now = new AtomicLong(5000L);
         SnowflakeServiceImpl service = createServiceWithClock(now);
 
-        // Use reflection to call the private saveState method
-        java.lang.reflect.Method method = SnowflakeServiceImpl.class.getDeclaredMethod("saveState");
-        method.setAccessible(true);
-
-        method.invoke(service);
-        verify(mockStateService, timeout(500)).saveState(anyLong());
+        service.saveState();
+        verify(mockStateService, never()).saveState(anyLong());
     }
 
     @Test
@@ -224,13 +231,15 @@ class SnowflakeServiceImplTest {
     void testValidateTimestampExactlyAtSaved() {
         snowflakeProperties.setHostname(KUBERNETES_HOSTNAME);
         snowflakeProperties.setCustomEpoch(0);
+        // lastSaved = 1000
         when(mockStateService.loadState(anyLong())).thenReturn(1000L);
         AtomicLong now = new AtomicLong(1000L);
         SnowflakeServiceImpl service = createServiceWithClock(now);
         service.init();
 
         service.nextId();
-        // currentTimestamp (1000) == lastSavedTimestamp (1000), should NOT trigger saveState
+        service.saveState();
+        // currentTimestamp (1000) == last reserved timestamp (1000), so there is nothing to flush.
         verify(mockStateService, times(0)).saveState(anyLong());
     }
 }

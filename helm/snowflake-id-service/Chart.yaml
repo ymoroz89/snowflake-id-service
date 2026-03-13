@@ -4,6 +4,8 @@ description: A Helm chart for Snowflake ID Service - generates unique distribute
 type: application
 version: 0.1.0
 appVersion: "1.0.0"
+home: https://github.com/ymoroz89/snowflake-id-service
+icon: https://raw.githubusercontent.com/cncf/artwork/main/projects/kubernetes/icon/color/kubernetes-icon-color.png
 keywords:
   - snowflake
   - id-generator

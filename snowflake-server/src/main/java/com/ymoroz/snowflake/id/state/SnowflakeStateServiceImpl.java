@@ -93,12 +93,11 @@ public class SnowflakeStateServiceImpl implements SnowflakeStateService {
     }
 
     /**
-     * Saves the current timestamp to the state file with a buffer.
+     * Saves the reserved timestamp to the state file.
      * 
-     * <p>Writes the current timestamp plus a buffer (configured via snowflake.time-offset-buffer-ms) 
-     * to "reserve" this time window, preventing duplicate IDs in case of service restarts or clock adjustments.
+     * <p>The coordinator computes and coalesces the reserved timestamp before handing it to this service.
      * 
-     * @param saveTime the current timestamp to save
+     * @param saveTime the reserved timestamp to save
      * @throws RuntimeException if there's an error writing the state file
      */
     @Override
