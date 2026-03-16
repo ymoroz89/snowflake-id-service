@@ -103,6 +103,7 @@ public class SnowflakeStateServiceImpl implements SnowflakeStateService {
     @Override
     public void saveState(long saveTime) {
         // We save current + buffer to "reserve" this time window
+        log.debug("Saving state timestamp {} to file {}", saveTime, stateFile);
 
         try (FileChannel channel = FileChannel.open(stateFile,
                 StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.DSYNC)) {
@@ -110,6 +111,7 @@ public class SnowflakeStateServiceImpl implements SnowflakeStateService {
             buffer.putLong(saveTime);
             buffer.flip();
             channel.write(buffer, 0); // Write at the beginning
+            log.debug("Successfully saved state to file");
         } catch (IOException e) {
             log.error("Failed to save state to file: {}", stateFile, e);
             throw new RuntimeException("Failed to save state", e);

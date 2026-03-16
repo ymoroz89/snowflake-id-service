@@ -31,7 +31,7 @@ For this repository's local workflow, infra scripts provision the cluster and su
 - `infra/pipeline-environment-set-up.sh`
   - Ensures Kind cluster `dev-cluster`
   - Creates/reuses TLS secret `snowflake-id-service-tls`
-  - Installs ingress-nginx and kube-prometheus-stack
+  - Installs ingress-nginx, Loki, kube-prometheus-stack, and Grafana Alloy
 - `infra/kind/kind-config.yaml` host mappings:
   - `443 -> 30443` (ingress HTTPS)
   - `30090 -> 30090` (service NodePort)
@@ -99,6 +99,9 @@ helm upgrade snowflake-id-service ./helm/snowflake-id-service \
 - `ServiceMonitor` is created when:
   - `observability.prometheus.serviceMonitor.enabled=true`
   - `ServiceMonitor` CRD exists in the cluster
+- Local infra also provisions Loki with 3 replicas, configures object storage for multi-replica mode, and provisions Grafana with a `Loki` data source
+- Grafana Alloy runs as a DaemonSet with node-local discovery so logs are collected from all cluster nodes without duplicate ingestion
+- App logs are collected from pod stdout/stderr and can be queried with `{app="snowflake-id-service"}`
 
 ## Security and Runtime
 

@@ -22,7 +22,12 @@ configure_helm_repositories() {
   log "Configuring Helm repositories"
   helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx --force-update
   helm repo add prometheus-community https://prometheus-community.github.io/helm-charts --force-update
+  helm repo add grafana https://grafana.github.io/helm-charts --force-update
   helm repo update
+}
+
+install_loki() {
+  ./infra/install-loki.sh
 }
 
 install_observability_stack() {
@@ -36,6 +41,16 @@ install_observability_stack() {
     --set grafana.adminPassword="${grafana_admin_password}" \
     --wait \
     --timeout 8m
+}
+
+install_log_collector() {
+  log "Installing Grafana Alloy log collector"
+  helm upgrade --install alloy-logs grafana/alloy \
+    --namespace monitoring \
+    --create-namespace \
+    -f helm/alloy/values.yaml \
+    --wait \
+    --timeout 5m
 }
 
 install_ingress_controller() {
@@ -71,7 +86,11 @@ set_up_kind_cluster() {
   
   install_ingress_controller
   
+  install_loki
+
   install_observability_stack
+
+  install_log_collector
 
   echo
 }

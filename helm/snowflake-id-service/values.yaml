@@ -20,6 +20,7 @@ podAnnotations: {}
 
 podSecurityContext:
   fsGroup: 65532
+  runAsNonRoot: true
   seccompProfile:
     type: RuntimeDefault
 
@@ -70,9 +71,23 @@ autoscaling:
 
 nodeSelector: {}
 
-tolerations: []
+tolerations:
+  - key: "node-role.kubernetes.io/control-plane"
+    operator: "Exists"
+    effect: "NoSchedule"
 
-affinity: {}
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - snowflake-id-service
+          topologyKey: "kubernetes.io/hostname"
 
 # Application specific configuration
 app:
@@ -80,6 +95,13 @@ app:
   healthPort: 9091
   metricsPort: 8080
   name: snowflake-id-service
+
+# Extra environment variables to inject into the pods
+extraEnv: []
+# Example:
+#extraEnv:
+#  - name: LOGGING_LEVEL_COM_YMOROZ_SNOWFLAKE
+#    value: DEBUG
 
 observability:
   metricsService:
@@ -99,8 +121,7 @@ persistence:
   enabled: true
   accessMode: ReadWriteOnce
   size: 10Mi
-  storageClass: "" # Use default storage class
-  # storageClassName: "standard" # Uncomment to specify storage class
+  storageClassName: "" # Use default storage class
 
 pdb:
   enabled: true

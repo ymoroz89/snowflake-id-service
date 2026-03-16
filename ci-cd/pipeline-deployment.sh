@@ -51,6 +51,7 @@ deploy() {
   log "Deployment completed"
   log "Prometheus URL: http://localhost:30091"
   log "Grafana URL: http://localhost:30300 (admin/${GRAFANA_ADMIN_PASSWORD:-admin})"
+  log "Grafana logs query: Explore -> Loki -> {app=\"snowflake-id-service\"}"
   
   echo
 }

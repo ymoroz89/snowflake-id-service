@@ -50,12 +50,13 @@ class SnowflakeGrpcServiceTest {
         SnowflakeGrpcService grpcService = new SnowflakeGrpcService(snowflakeService, meterRegistry);
         CapturingObserver observer = new CapturingObserver();
 
-        assertThrows(IllegalStateException.class,
-                () -> grpcService.generateId(GenerateIdRequest.getDefaultInstance(), observer));
+        grpcService.generateId(GenerateIdRequest.getDefaultInstance(), observer);
 
         assertTrue(observer.responses.isEmpty());
         assertFalse(observer.completed);
-        assertNull(observer.error);
+        assertNotNull(observer.error);
+        assertEquals(IllegalStateException.class, observer.error.getClass());
+        assertEquals("Generation failed", observer.error.getMessage());
         verify(snowflakeService).nextId();
 
         Counter generatedIdsCounter = meterRegistry.get("snowflake.ids.generated.total").counter();

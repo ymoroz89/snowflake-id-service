@@ -83,6 +83,10 @@ install_metrics_server() {
   # Patch Metrics Server to allow insecure connections to kubelet
   log "Patching Metrics Server for insecure TLS connections"
   kubectl patch deployment metrics-server -n kube-system --type='json' -p='[{"op": "add", "path": "/spec/template/spec/containers/0/args/-", "value": "--kubelet-insecure-tls"}]'
+
+  # Install Metrics Server for HPA functionality
+  kubectl patch deployment metrics-server -n kube-system --type='json' -p='[{"op": "add", "path": "/spec/template/spec/tolerations", "value": [{"key": "node-role.kubernetes.io/control-plane", "operator": "Exists", "effect": "NoSchedule"}]}]'
+  kubectl patch deployment metrics-server -n kube-system --type='json' -p='[{"op": "add", "path": "/spec/template/spec/affinity", "value": {"podAntiAffinity": {"preferredDuringSchedulingIgnoredDuringExecution": [{"weight": 100, "podAffinityTerm": {"labelSelector": {"matchExpressions": [{"key": "k8s-app", "operator": "In", "values": ["metrics-server"]}]}, "topologyKey": "kubernetes.io/hostname"}}]}}}]'
   
   # Scale Metrics Server to 3 replicas for high availability
   log "Scaling Metrics Server to 3 replicas for high availability"

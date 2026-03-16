@@ -159,6 +159,7 @@ stub.generateId(request, new StreamObserver<GenerateIdResponse>() {
   - Dedicated metrics service (`*-metrics`) is enabled by default.
   - `ServiceMonitor` is enabled by default for Prometheus Operator setups.
   - Companion Helm values in this repo expose Grafana/Prometheus via NodePorts (`30300`/`30091`).
+  - Local infra also installs Loki in 3-replica monolithic mode and Grafana Alloy on every node so pod logs are queryable in Grafana Explore.
 - **Ingress controller defaults in this repo**:
   - `helm/ingress-nginx/values.yaml` configures ingress-nginx HTTPS NodePort `30443`.
 
@@ -169,9 +170,11 @@ stub.generateId(request, new StreamObserver<GenerateIdResponse>() {
   - Adds `--kubelet-insecure-tls`.
   - Scales Metrics Server to 3 replicas and validates `kubectl top nodes`.
 - `infra/create-tls-secret.sh` generates/reuses self-signed certs for `localhost` in `certs/` and creates Kubernetes secret `snowflake-id-service-tls`.
-- Installs `ingress-nginx` and `kube-prometheus-stack` via repository-local values files:
+- Installs `ingress-nginx`, `loki`, `kube-prometheus-stack`, and Grafana Alloy via repository-local values files:
   - `helm/ingress-nginx/values.yaml`
+  - `helm/loki/values.yaml`
   - `helm/kube-prometheus-stack/values.yaml`
+  - `helm/alloy/values.yaml`
 - Kind control-plane host port mappings (`infra/kind/kind-config.yaml`):
   - `443 -> 30443` (ingress-nginx HTTPS entrypoint)
   - `30090 -> 30090` (service NodePort exposure)
@@ -210,6 +213,12 @@ stub.generateId(request, new StreamObserver<GenerateIdResponse>() {
 - Comprehensive logging for state file operations
 - Graceful degradation when state persistence fails
 - Service continues operation even if state save fails
+
+#### Log Aggregation
+- Application logs are written to pod stdout/stderr through Spring Boot logging
+- Grafana Alloy runs as a DaemonSet and restricts discovery to the local node to avoid duplicate log ingestion
+- Loki runs with 3 replicas and object storage so log ingestion remains available across all Kind nodes
+- Grafana provisions Loki as a data source for log search in Explore
 
 #### Concurrency Safety
 - Lock timeout protection
