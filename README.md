@@ -172,6 +172,8 @@ Infra behavior used by this flow:
 - Kind cluster name: `dev-cluster`
 - Host port mappings: `443 -> ingress`, `30090 -> service NodePort`, `30091 -> Prometheus`, `30300 -> Grafana`
 - TLS secret `snowflake-id-service-tls` is created from local `certs/` (self-signed for `localhost` if absent)
+- Loki is installed in single-binary mode for local log storage
+- Grafana Alloy collects `snowflake-id-service` pod logs and forwards them to Loki
 - Metrics Server is installed and validated (`kubectl top`) for HPA support
 
 Optional credentials for Docker Hub publish/pull and Grafana admin password can be provided in root `local.env`:
@@ -227,10 +229,34 @@ When the local infra pipeline is deployed:
 
 - Grafana: `http://localhost:30300`
 - Prometheus: `http://localhost:30091`
+- Loki is provisioned into Grafana automatically as the `Loki` data source
+- Loki runs as 3 replicated single-binary pods with object storage for local HA-style testing
+- Grafana Alloy runs as a DaemonSet so log collection is present on every cluster node
 
 Application metrics endpoint:
 
 - `http://<pod-ip>:8080/actuator/prometheus`
+
+Application logs in Grafana:
+
+- Open Grafana Explore and select the `Loki` data source
+- Query app logs with `{app="snowflake-id-service"}`
+- Narrow to a pod if needed with `{app="snowflake-id-service", pod="snowflake-id-service-0"}`
+
+### Logging
+
+The application uses SLF4J with Logback for logging.
+
+Default configuration in `application.yaml`:
+
+```yaml
+logging:
+  level:
+    root: INFO
+    com.ymoroz.snowflake: INFO
+```
+
+Log levels can be adjusted by setting the `LOGGING_LEVEL_ROOT` or `LOGGING_LEVEL_COM_YMOROZ_SNOWFLAKE` environment variables.
 
 ## Project Status
 

@@ -59,6 +59,9 @@ spec:
                   fieldPath: metadata.name
             - name: STATE_FILE
               value: "/data/snowflake.state"
+            {{- if .Values.extraEnv }}
+              {{- toYaml .Values.extraEnv | nindent 12 }}
+            {{- end }}
           {{- if .Values.startupProbe }}
           startupProbe:
             grpc:

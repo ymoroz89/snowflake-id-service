@@ -8,10 +8,12 @@ import io.grpc.stub.StreamObserver;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.TimeUnit;
 
+@Slf4j
 @Service
 public class SnowflakeGrpcService extends SnowflakeServiceGrpc.SnowflakeServiceImplBase {
 
@@ -27,6 +29,7 @@ public class SnowflakeGrpcService extends SnowflakeServiceGrpc.SnowflakeServiceI
 
     @Override
     public void generateId(GenerateIdRequest request, StreamObserver<GenerateIdResponse> responseObserver) {
+        log.debug("Received GenerateIdRequest");
         long startNanos = System.nanoTime();
         try {
             long id = snowflakeService.nextId();
@@ -36,6 +39,10 @@ public class SnowflakeGrpcService extends SnowflakeServiceGrpc.SnowflakeServiceI
                     .build();
             responseObserver.onNext(response);
             responseObserver.onCompleted();
+            log.debug("Responded with generated ID: {}", id);
+        } catch (Exception e) {
+            log.error("Failed to generate ID", e);
+            responseObserver.onError(e);
         } finally {
             idGenerationLatency.record(System.nanoTime() - startNanos, TimeUnit.NANOSECONDS);
         }

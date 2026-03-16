@@ -96,6 +96,13 @@ app:
   metricsPort: 8080
   name: snowflake-id-service
 
+# Extra environment variables to inject into the pods
+extraEnv: []
+# Example:
+#extraEnv:
+#  - name: LOGGING_LEVEL_COM_YMOROZ_SNOWFLAKE
+#    value: DEBUG
+
 observability:
   metricsService:
     enabled: true

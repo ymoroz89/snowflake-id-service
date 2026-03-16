@@ -34,3 +34,8 @@ management:
   metrics:
     tags:
       application: ${SPRING_APPLICATION_NAME:snowflake-id-service}
+
+logging:
+  level:
+    root: INFO
+    com.ymoroz.snowflake: INFO

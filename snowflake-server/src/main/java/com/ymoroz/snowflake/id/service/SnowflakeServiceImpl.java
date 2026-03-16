@@ -88,6 +88,7 @@ public class SnowflakeServiceImpl implements SnowflakeService {
         long maxNodeId = (1L << nodeIdBits) - 1;
         long parsedNodeId = nodeIdParser.parse(hostName);
         if (parsedNodeId < 0 || parsedNodeId > maxNodeId) {
+            log.error("Invalid node ID: {}", parsedNodeId);
             throw new IllegalArgumentException("Node ID out of range for configured nodeIdBits: " + parsedNodeId);
         }
         return parsedNodeId;
@@ -95,13 +96,16 @@ public class SnowflakeServiceImpl implements SnowflakeService {
 
     @PostConstruct
     public void init() {
+        log.debug("Initializing SnowflakeServiceImpl with properties: {}", snowflakeProperties);
         long currentTime = currentTimeMillisSupplier.getAsLong() - snowflakeProperties.getCustomEpoch();
         long loadedState = statePersistenceCoordinator.initialize(currentTime);
         lastTimestamp = Math.max(lastTimestamp, loadedState);
+        log.info("SnowflakeServiceImpl initialized with lastTimestamp: {}", lastTimestamp);
     }
 
     @PreDestroy
     public void destroy() {
+        log.debug("Shutting down SnowflakeServiceImpl");
         statePersistenceCoordinator.flushPending();
         statePersistenceCoordinator.shutdown();
     }
@@ -126,6 +130,7 @@ public class SnowflakeServiceImpl implements SnowflakeService {
                 //  & 0111111111111  (4095, padded to 13 bits)
                 //  = 0000000000000  (0)
                 if (sequence == 0) {
+                    log.debug("Sequence exhausted at timestamp {}, waiting for next millisecond", currentTimestamp);
                     currentTimestamp = waitNextMillis(currentTimestamp);
                 }
             } else {
@@ -136,12 +141,17 @@ public class SnowflakeServiceImpl implements SnowflakeService {
             generatedTimestamp = currentTimestamp;
             generatedId = buildId(currentTimestamp);
             timestampAdvanced = generatedTimestamp > previousTimestamp;
+
+            if (log.isDebugEnabled()) {
+                log.debug("Generated ID: {} at timestamp {} with sequence {}", generatedId, generatedTimestamp, sequence);
+            }
         } finally {
             lock.unlock();
         }
 
         if (timestampAdvanced) {
             long targetTimestamp = generatedTimestamp + timeOffsetBufferMs;
+            log.debug("Timestamp advanced, triggering persistence for targetTimestamp: {}", targetTimestamp);
             statePersistenceCoordinator.persist(targetTimestamp);
         }
         return generatedId;
@@ -201,6 +211,7 @@ public class SnowflakeServiceImpl implements SnowflakeService {
      */
     @Scheduled(fixedRate = STATE_FLUSH_INTERVAL_MS)
     void saveState() {
+        log.debug("Scheduled state flush triggerred");
         statePersistenceCoordinator.flushPending();
     }
 }

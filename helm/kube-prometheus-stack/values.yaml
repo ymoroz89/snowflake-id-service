@@ -2,6 +2,15 @@ grafana:
   service:
     type: NodePort
     nodePort: 30300
+  additionalDataSources:
+    - name: Loki
+      uid: loki
+      type: loki
+      access: proxy
+      url: http://loki-gateway.monitoring.svc.cluster.local
+      editable: false
+      jsonData:
+        maxLines: 1000
 
 prometheus:
   service:

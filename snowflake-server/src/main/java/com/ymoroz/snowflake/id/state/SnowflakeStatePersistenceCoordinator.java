@@ -41,8 +41,10 @@ public final class SnowflakeStatePersistenceCoordinator implements StatePersiste
      */
     @Override
     public long initialize(long currentTimestamp) {
+        log.debug("Initializing coordinator with currentTimestamp: {}", currentTimestamp);
         long loadedState = stateService.loadState(currentTimestamp);
         lastSavedTimestamp.set(loadedState);
+        log.debug("Coordinator initialized. lastSavedTimestamp: {}", loadedState);
         return loadedState;
     }
 
@@ -53,6 +55,7 @@ public final class SnowflakeStatePersistenceCoordinator implements StatePersiste
      */
     @Override
     public void persist(long targetTimestamp) {
+        log.debug("Registering targetTimestamp for persistence: {}", targetTimestamp);
         pendingSaveTimestamp.accumulateAndGet(targetTimestamp, Math::max);
     }
 
@@ -65,13 +68,17 @@ public final class SnowflakeStatePersistenceCoordinator implements StatePersiste
         long lastSaved = lastSavedTimestamp.get();
 
         if (pending > lastSaved) {
+            log.debug("Flushing pending state. pending: {}, lastSaved: {}", pending, lastSaved);
             try {
                 stateService.saveState(pending);
                 // Only update lastSavedTimestamp if save succeeded
                 lastSavedTimestamp.accumulateAndGet(pending, Math::max);
+                log.debug("Successfully flushed state to: {}", pending);
             } catch (Exception e) {
                 log.error("Failed to persist Snowflake state at timestamp {}", pending, e);
             }
+        } else {
+            log.trace("No pending state to flush. pending: {}, lastSaved: {}", pending, lastSaved);
         }
     }
 
