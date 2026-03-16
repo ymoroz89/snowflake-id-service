@@ -43,6 +43,8 @@ spec:
               containerPort: {{ .Values.app.metricsPort }}
               protocol: TCP
           env:
+            - name: JAVA_OPTS
+              value: "-XX:MaxRAMPercentage=75.0"
             - name: SPRING_APPLICATION_NAME
               value: {{ .Values.app.name | quote }}
             - name: GRPC_SERVER_PORT
@@ -93,13 +95,17 @@ spec:
               mountPath: /data
             - name: tmp
               mountPath: /tmp
+            - name: logs
+              mountPath: /logs
           lifecycle:
             preStop:
               exec:
-                command: ["/bin/sh", "-c", "sleep 30"]
+                command: ["sh", "-c", "sleep 10"]
       terminationGracePeriodSeconds: 45
       volumes:
         - name: tmp
+          emptyDir: {}
+        - name: logs
           emptyDir: {}
         {{- if not .Values.persistence.enabled }}
         - name: data
@@ -109,9 +115,9 @@ spec:
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.affinity }}
+      {{- if .Values.affinity }}
       affinity:
-        {{- toYaml . | nindent 8 }}
+        {{- toYaml .Values.affinity | nindent 8 }}
       {{- end }}
       {{- with .Values.tolerations }}
       tolerations:
@@ -123,8 +129,8 @@ spec:
         name: data
       spec:
         accessModes: [ {{ .Values.persistence.accessMode | quote }} ]
-        {{- if .Values.persistence.storageClass }}
-        storageClassName: {{ .Values.persistence.storageClass | quote }}
+        {{- if .Values.persistence.storageClassName }}
+        storageClassName: {{ .Values.persistence.storageClassName | quote }}
         {{- end }}
         resources:
           requests:
