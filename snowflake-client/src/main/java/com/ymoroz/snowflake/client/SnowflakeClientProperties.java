@@ -11,6 +11,11 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 public class SnowflakeClientProperties {
     /**
+     * Whether the Snowflake gRPC client is enabled.
+     */
+    private boolean enabled = true;
+
+    /**
      * The host of the Snowflake gRPC server.
      */
     @NotBlank
@@ -24,6 +29,17 @@ public class SnowflakeClientProperties {
     private int port = 9090;
 
     /**
+     * Whether to use plaintext (no TLS) for the gRPC connection.
+     */
+    private boolean usePlaintext = true;
+
+    /**
+     * Deadline in seconds for gRPC calls. Maximum time to wait for a response.
+     */
+    @Positive
+    private long deadline = 5;
+
+    /**
      * Keep-alive time in seconds. Send keep-alive ping after this duration of inactivity.
      */
     @Positive
@@ -34,6 +50,19 @@ public class SnowflakeClientProperties {
      */
     @Positive
     private long keepAliveTimeout = 5;
+
+    /**
+     * Whether to send keep-alive pings even when there are no active RPCs.
+     */
+    private boolean keepAliveWithoutCalls = true;
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
 
     public String getHost() {
         return host;
@@ -51,6 +80,22 @@ public class SnowflakeClientProperties {
         this.port = port;
     }
 
+    public boolean isUsePlaintext() {
+        return usePlaintext;
+    }
+
+    public void setUsePlaintext(boolean usePlaintext) {
+        this.usePlaintext = usePlaintext;
+    }
+
+    public long getDeadline() {
+        return deadline;
+    }
+
+    public void setDeadline(long deadline) {
+        this.deadline = deadline;
+    }
+
     public long getKeepAliveTime() {
         return keepAliveTime;
     }
@@ -65,5 +110,13 @@ public class SnowflakeClientProperties {
 
     public void setKeepAliveTimeout(long keepAliveTimeout) {
         this.keepAliveTimeout = keepAliveTimeout;
+    }
+
+    public boolean isKeepAliveWithoutCalls() {
+        return keepAliveWithoutCalls;
+    }
+
+    public void setKeepAliveWithoutCalls(boolean keepAliveWithoutCalls) {
+        this.keepAliveWithoutCalls = keepAliveWithoutCalls;
     }
 }

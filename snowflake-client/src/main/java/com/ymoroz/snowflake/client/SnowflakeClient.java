@@ -17,28 +17,45 @@ public class SnowflakeClient implements AutoCloseable {
 
     private final ManagedChannel channel;
     private final SnowflakeServiceGrpc.SnowflakeServiceBlockingStub blockingStub;
+    private final long deadline;
 
     public SnowflakeClient(String host, int port) {
-        this(host, port, 30, 5);
+        this(host, port, 30, 5, true, true);
     }
 
     public SnowflakeClient(String host, int port, long keepAliveTime, long keepAliveTimeout) {
-        this(buildChannel(validateHost(host), validatePort(port), keepAliveTime, keepAliveTimeout));
+        this(host, port, keepAliveTime, keepAliveTimeout, true, true);
+    }
+
+    public SnowflakeClient(String host, int port, long keepAliveTime, long keepAliveTimeout, boolean usePlaintext, boolean keepAliveWithoutCalls) {
+        this(buildChannel(validateHost(host), validatePort(port), keepAliveTime, keepAliveTimeout, usePlaintext, keepAliveWithoutCalls), 5);
     }
 
     public SnowflakeClient(SnowflakeClientProperties properties) {
-        this(properties.getHost(), properties.getPort(), properties.getKeepAliveTime(), properties.getKeepAliveTimeout());
+        this(buildChannel(
+                validateHost(properties.getHost()),
+                validatePort(properties.getPort()),
+                properties.getKeepAliveTime(),
+                properties.getKeepAliveTimeout(),
+                properties.isUsePlaintext(),
+                properties.isKeepAliveWithoutCalls()),
+                properties.getDeadline());
     }
 
     public SnowflakeClient(ManagedChannel channel) {
+        this(channel, 5);
+    }
+
+    public SnowflakeClient(ManagedChannel channel, long deadline) {
         this.channel = Objects.requireNonNull(channel, "channel must not be null");
+        this.deadline = deadline;
         this.blockingStub = SnowflakeServiceGrpc.newBlockingStub(channel);
     }
 
     public long generateId() {
         try {
             GenerateIdRequest request = GenerateIdRequest.newBuilder().build();
-            GenerateIdResponse response = blockingStub.withDeadlineAfter(5, TimeUnit.SECONDS).generateId(request);
+            GenerateIdResponse response = blockingStub.withDeadlineAfter(deadline, TimeUnit.SECONDS).generateId(request);
             return response.getId();
         } catch (Exception e) {
             throw new SnowflakeClientException("Failed to generate ID from server", e);
@@ -48,6 +65,17 @@ public class SnowflakeClient implements AutoCloseable {
     public boolean isConnected() {
         io.grpc.ConnectivityState state = channel.getState(false);
         return state == io.grpc.ConnectivityState.READY;
+    }
+
+    private static ManagedChannel buildChannel(String host, int port, long keepAliveTime, long keepAliveTimeout, boolean usePlaintext, boolean keepAliveWithoutCalls) {
+        ManagedChannelBuilder<?> builder = ManagedChannelBuilder.forAddress(host, port)
+                .keepAliveTime(keepAliveTime, TimeUnit.SECONDS)
+                .keepAliveTimeout(keepAliveTimeout, TimeUnit.SECONDS)
+                .keepAliveWithoutCalls(keepAliveWithoutCalls);
+        if (usePlaintext) {
+            builder.usePlaintext();
+        }
+        return builder.build();
     }
 
     @Override
@@ -81,12 +109,4 @@ public class SnowflakeClient implements AutoCloseable {
         return port;
     }
 
-    private static ManagedChannel buildChannel(String host, int port, long keepAliveTime, long keepAliveTimeout) {
-        return ManagedChannelBuilder.forAddress(host, port)
-                .usePlaintext()
-                .keepAliveTime(keepAliveTime, TimeUnit.SECONDS)
-                .keepAliveTimeout(keepAliveTimeout, TimeUnit.SECONDS)
-                .keepAliveWithoutCalls(true)
-                .build();
-    }
 }
