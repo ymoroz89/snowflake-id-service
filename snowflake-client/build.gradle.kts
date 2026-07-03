@@ -34,6 +34,7 @@ dependencies {
     compileOnly("javax.annotation:javax.annotation-api:1.3.2")
 
     implementation("org.springframework.boot:spring-boot-starter")
+    implementation("org.springframework.boot:spring-boot-starter-validation")
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
