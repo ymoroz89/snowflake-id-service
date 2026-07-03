@@ -1,6 +1,7 @@
 plugins {
     java
     jacoco
+    `maven-publish`
     id("io.spring.dependency-management")
 }
 
@@ -53,4 +54,15 @@ tasks.test {
 
 tasks.named<JacocoReport>("jacocoTestReport") {
     dependsOn(tasks.test)
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("mavenJava") {
+            from(components["java"])
+        }
+    }
+    repositories {
+        mavenLocal()
+    }
 }

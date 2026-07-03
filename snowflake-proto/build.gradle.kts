@@ -61,4 +61,7 @@ publishing {
             from(components["java"])
         }
     }
+    repositories {
+        mavenLocal()
+    }
 }
