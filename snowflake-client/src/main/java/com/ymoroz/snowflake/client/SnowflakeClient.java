@@ -45,6 +45,11 @@ public class SnowflakeClient implements AutoCloseable {
         }
     }
 
+    public boolean isConnected() {
+        io.grpc.ConnectivityState state = channel.getState(false);
+        return state == io.grpc.ConnectivityState.READY;
+    }
+
     @Override
     public void close() {
         channel.shutdown();
