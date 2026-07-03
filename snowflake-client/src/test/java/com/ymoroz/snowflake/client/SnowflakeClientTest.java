@@ -48,14 +48,17 @@ public class SnowflakeClientTest {
                     .thenReturn(blockingStub);
 
             SnowflakeClient client = new SnowflakeClient(channel);
-            
+
             GenerateIdResponse response = GenerateIdResponse.newBuilder().setId(12345L).build();
-            when(blockingStub.generateId(any(GenerateIdRequest.class))).thenReturn(response);
+            SnowflakeServiceGrpc.SnowflakeServiceBlockingStub deadlineStub = mock(SnowflakeServiceGrpc.SnowflakeServiceBlockingStub.class);
+            when(blockingStub.withDeadlineAfter(anyLong(), any(TimeUnit.class))).thenReturn(deadlineStub);
+            when(deadlineStub.generateId(any(GenerateIdRequest.class))).thenReturn(response);
 
             long id = client.generateId();
 
             assertEquals(12345L, id);
-            verify(blockingStub).generateId(any(GenerateIdRequest.class));
+            verify(blockingStub).withDeadlineAfter(anyLong(), any(TimeUnit.class));
+            verify(deadlineStub).generateId(any(GenerateIdRequest.class));
         }
     }
 
