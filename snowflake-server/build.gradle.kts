@@ -2,6 +2,7 @@ plugins {
     java
     jacoco
     id("org.springframework.boot")
+    id("io.spring.dependency-management")
 }
 
 group = "com.ymoroz.snowflake"
@@ -11,7 +12,6 @@ val springGrpcVersion = rootProject.findProperty("springGrpcVersion") as String
 val springBootVersion = rootProject.findProperty("springBootVersion") as String
 val lombokVersion = rootProject.findProperty("lombokVersion") as String
 val grpcVersion = rootProject.findProperty("grpcVersion") as String
-val micrometerPrometheusVersion = rootProject.findProperty("micrometerPrometheusVersion") as String
 
 java {
     toolchain {
@@ -24,6 +24,12 @@ repositories {
     maven { url = uri("https://repo.spring.io/snapshot") }
 }
 
+dependencyManagement {
+    imports {
+        mavenBom("org.springframework.boot:spring-boot-dependencies:$springBootVersion")
+    }
+}
+
 dependencies {
     implementation(project(":snowflake-proto"))
     implementation("org.springframework.boot:spring-boot-starter:$springBootVersion")
@@ -31,7 +37,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-actuator:$springBootVersion")
     implementation("org.springframework.grpc:spring-grpc-spring-boot-starter:$springGrpcVersion")
     implementation("io.grpc:grpc-services:$grpcVersion")
-    runtimeOnly("io.micrometer:micrometer-registry-prometheus:$micrometerPrometheusVersion")
+    runtimeOnly("io.micrometer:micrometer-registry-prometheus")
     compileOnly("org.projectlombok:lombok:$lombokVersion")
     annotationProcessor("org.projectlombok:lombok:$lombokVersion")
     testImplementation(project(":snowflake-client"))

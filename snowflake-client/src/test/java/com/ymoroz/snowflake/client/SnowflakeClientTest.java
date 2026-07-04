@@ -3,6 +3,7 @@ package com.ymoroz.snowflake.client;
 import com.ymoroz.snowflake.proto.GenerateIdRequest;
 import com.ymoroz.snowflake.proto.GenerateIdResponse;
 import com.ymoroz.snowflake.proto.SnowflakeServiceGrpc;
+import io.grpc.ConnectivityState;
 import io.grpc.ManagedChannel;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,6 +13,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -59,6 +61,21 @@ public class SnowflakeClientTest {
             assertEquals(12345L, id);
             verify(blockingStub).withDeadlineAfter(anyLong(), any(TimeUnit.class));
             verify(deadlineStub).generateId(any(GenerateIdRequest.class));
+        }
+    }
+
+    @Test
+    public void testIsConnectedRequestsConnection() {
+        when(channel.getState(true)).thenReturn(ConnectivityState.READY);
+
+        try (MockedStatic<SnowflakeServiceGrpc> mockedGrpc = mockStatic(SnowflakeServiceGrpc.class)) {
+            mockedGrpc.when(() -> SnowflakeServiceGrpc.newBlockingStub(any(ManagedChannel.class)))
+                    .thenReturn(blockingStub);
+
+            SnowflakeClient client = new SnowflakeClient(channel);
+
+            assertTrue(client.isConnected());
+            verify(channel).getState(true);
         }
     }
 
